@@ -1,0 +1,188 @@
+---
+name: alpinejs-development
+description: Expert knowledge of Alpine.js v3 (alpinejs.dev) — the lightweight JavaScript framework for sprinkling client-side behavior into server-rendered HTML. Use this skill for ANY Alpine work: writing x-data components, x-show/x-if/x-for templates, x-model form binding, x-transition animations, x-bind/x-on handlers and their modifiers, the $refs/$store/$watch/$dispatch/$nextTick/$el/$id magics, Alpine.data/Alpine.store/Alpine.bind globals, custom directives and the extension API, reactivity internals, CSP-safe mode, and the official plugins (mask, intersect, persist, collapse, focus/trap, anchor, sort, resize, morph). Also use when Alpine appears inside Laravel Livewire, Blade, Rails, Django, Hotwire, or any HTML-over-the-wire stack. Keywords: alpine, alpinejs, alpine.js, x-data, x-init, x-show, x-if, x-for, x-model, x-modelable, x-bind, x-on, x-text, x-html, x-effect, x-ref, x-cloak, x-ignore, x-teleport, x-transition, x-id, x-mask, x-intersect, x-persist, x-collapse, x-trap, x-anchor, x-sort, x-resize, $el, $refs, $root, $data, $store, $watch, $dispatch, $nextTick, $id, $focus, $persist, Alpine.data, Alpine.store, Alpine.bind, Alpine.directive, Alpine.reactive, Alpine.effect, Alpine.morph, alpine:init.
+---
+
+# Alpine.js v3
+
+Alpine is fifteen attributes, six properties and three methods. It gives you
+reactive, declarative behavior directly in markup, with no build step and no
+virtual DOM. It is designed to complement server-rendered HTML rather than
+replace it.
+
+Source of truth: `alpinejs.dev` and `packages/docs/src/en` in
+`github.com/alpinejs/alpine`.
+
+---
+
+## The mental model
+
+```alpine
+<div x-data="{ open: false }">
+    <button @click="open = ! open">Toggle</button>
+
+    <div x-show="open">Content...</div>
+</div>
+```
+
+- **`x-data` declares a component** and its reactive state. Everything else is
+  scoped to it.
+- **Scope flows down** to all children, including nested `x-data` blocks. An
+  inner property of the same name shadows the outer one.
+- **Expressions are real JavaScript**, evaluated with `this` bound to the data
+  object.
+- **Reactivity is automatic.** Anything reading a property re-runs when it
+  changes — Alpine uses Vue's reactivity engine underneath.
+
+---
+
+## The three rules that cause most bugs
+
+1. **`x-if` and `x-for` must be on a `<template>` tag, wrapping exactly one root
+   element.** Putting them on a normal element silently does nothing.
+   ```alpine
+   <template x-if="open"><div>…</div></template>
+   <template x-for="c in colors" :key="c.id"><li x-text="c.label"></li></template>
+   ```
+2. **Key every list that can reorder.** Without `:key`, Alpine loses track and
+   produces wrong or duplicated rows.
+3. **`x-cloak` needs its CSS to exist**, or it does nothing:
+   ```css
+   [x-cloak] { display: none !important; }
+   ```
+
+Two more worth internalizing:
+
+- **`x-show` vs `x-if`** — `x-show` toggles `display` and keeps the element in
+  the DOM; `x-if` adds and removes it. Only `x-show` supports `x-transition`.
+- **`x-on` listens for lowercase event names only.** HTML attributes are
+  case-insensitive, so `@CLICK` listens for `click`. Use `.camel` for a
+  camelCase custom event.
+
+---
+
+## Quick reference
+
+**18 directives:** `x-data` `x-init` `x-show` `x-bind`/`:` `x-on`/`@` `x-text`
+`x-html` `x-model` `x-modelable` `x-for` `x-if` `x-effect` `x-ref` `x-cloak`
+`x-ignore` `x-teleport` `x-transition` `x-id`
+
+**9 magics:** `$el` `$refs` `$root` `$data` `$store` `$watch` `$dispatch`
+`$nextTick` `$id`
+
+**3 globals:** `Alpine.data()` `Alpine.store()` `Alpine.bind()`
+
+**9 plugins:** mask · intersect · persist · collapse · focus (`x-trap`/`$focus`)
+· anchor · sort · resize · morph
+
+---
+
+## Reference files
+
+| File | Covers |
+|---|---|
+| `references/core.md` | Installing, every directive with its modifiers, every magic, the three globals, lifecycle and the extension API, reactivity internals, async expressions, CSP, and the Livewire integration rules |
+| `references/plugins.md` | All nine official plugins with their full attribute and modifier sets |
+
+---
+
+## Common patterns
+
+**Dropdown with a click-outside close:**
+```alpine
+<div x-data="{ open: false }" @click.outside="open = false">
+    <button @click="open = ! open">Menu</button>
+    <div x-show="open" x-transition>…</div>
+</div>
+```
+
+**Accessible modal** (focus plugin, bundled with Livewire):
+```alpine
+<div x-data="{ open: false }">
+    <button @click="open = true">Open</button>
+
+    <template x-teleport="body">
+        <div x-show="open" x-trap.inert.noscroll="open" @keyup.escape.window="open = false">
+            <div class="modal">…</div>
+        </div>
+    </template>
+</div>
+```
+
+**Debounced search field:**
+```alpine
+<input x-model="query" @input.debounce.500ms="search()">
+```
+
+**Reusable component + global store:**
+```js
+document.addEventListener('alpine:init', () => {
+    Alpine.data('dropdown', () => ({
+        open: false,
+        toggle() { this.open = ! this.open },
+    }))
+
+    Alpine.store('darkMode', {
+        on: false,
+        toggle() { this.on = ! this.on },
+    })
+})
+```
+```alpine
+<div x-data="dropdown">…</div>
+<button x-data @click="$store.darkMode.toggle()">Toggle theme</button>
+```
+
+**Persisting UI state across page loads:**
+```alpine
+<div x-data="{ tab: $persist('overview') }">…</div>
+```
+
+---
+
+## Extending Alpine — get the timing right
+
+Register directives, data and stores **after** Alpine loads but **before** it
+initializes.
+
+```html
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.directive('clipboard', (el) => {
+            let text = el.textContent
+            el.addEventListener('click', () => navigator.clipboard.writeText(text))
+        })
+    })
+</script>
+```
+
+From a bundle, register between the import and `Alpine.start()`.
+**In a Livewire app, do neither** — bundle through Livewire's ESM entry and call
+`Livewire.start()`. See `references/core.md`.
+
+---
+
+## Using Alpine with Livewire
+
+Livewire bundles Alpine, and every Livewire component **is** an Alpine component.
+The pairing rules:
+
+- **Reach for Alpine whenever the interaction does not need the server** — a
+  toggle, a character count, a dropdown. No round trip.
+- **`$wire` is your gateway to PHP.** `$wire.title = ''`, `$wire.save()`,
+  `await $wire.getPostCount()`.
+- **Prefer `$wire.property` over `$wire.$entangle()`.** Entangle is deprecated —
+  it duplicates state. The `@entangle` Blade directive is deprecated outright.
+- **Quote interpolated strings:** `$wire.deletePost('{{ $post->uuid }}')`. An
+  unquoted UUID is a JavaScript syntax error — integer ids hide this until you
+  switch to UUIDs.
+- **Alpine state survives Livewire updates** because Livewire morphs rather than
+  replaces. Use `wire:replace.self` when state must reset, and `wire:ignore`
+  around libraries that own their own DOM.
+- **Three plugins have a Livewire counterpart** — prefer the Livewire one inside
+  a component: `wire:intersect` over `x-intersect`, `wire:sort` over `x-sort`,
+  `@teleport` over `x-teleport`.
+- **`wire:transition` is not `x-transition`.** In Livewire v4 it uses the View
+  Transitions API and takes no modifiers.
+
+For the Livewire half of all this, use the `livewire-development` skill.
