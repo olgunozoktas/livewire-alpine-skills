@@ -50,6 +50,8 @@ Two behaviors unique to it:
 <input wire:model="query" wire:keydown.enter="searchPosts">
 <input wire:keydown.shift.enter="…">
 <div wire:custom-event.window="…"></div>
+<div wire:touchstart.passive="…"></div>
+<trix-editor wire:trix-change="setPostContent($event.target.value)"></trix-editor>
 ```
 
 `$event` gives you the DOM event:
@@ -457,6 +459,20 @@ Animates an element in and out.
 >
 > Alpine's `x-transition` is unrelated and keeps its full modifier and class API.
 
+**Typed transitions** come from the server side — `#[Transition(type: …)]`, or
+`$this->transition(type: …)` when the direction is dynamic. Target the type in
+CSS with `:active-view-transition-type()`. `$this->skipTransition()` disables it
+for one request.
+
+**Inside a typed swap, an unnamed `wire:transition` rides along with its
+parent** rather than animating independently. Name it if it must move on its own.
+
+Livewire respects `prefers-reduced-motion` automatically. Chrome/Edge 111+ and
+Safari 18+ have full support; **Firefox 144+ supports basic view transitions but
+not transition types**; older browsers simply swap without animation.
+
+Full detail in `attributes.md` → `#[Transition]`.
+
 ---
 
 ## Trigger directives
@@ -489,8 +505,17 @@ Polls the server on an interval. **Default 2.5 seconds.**
 | `.keep-alive` | Keep polling while the tab is backgrounded |
 | `.visible` | Only poll while the element is in the viewport |
 
+```blade
+<div wire:poll.keep-alive>…</div>
+<div wire:poll.visible>…</div>
+```
+
 **Background throttling is automatic** — a backgrounded tab drops to about **5%**
 of the request rate until the user returns. `.keep-alive` opts out.
+
+`wire:poll.visible` only polls while the element is in the viewport, so a widget
+at the bottom of a long page stays idle until the user scrolls to it, and stops
+again when they scroll away.
 
 In v4, polling is **non-blocking**: it neither blocks other requests nor is
 blocked by them.

@@ -85,6 +85,7 @@ Two more worth internalizing:
 | `references/magics-globals.md` | All 9 magics in full, `Alpine.data`/`Alpine.store`/`Alpine.bind`, `init()`/`destroy()`, the lifecycle events, and installing |
 | `references/plugins.md` | All 9 official plugins in full — mask, intersect, persist, collapse, focus, anchor, sort, resize, morph |
 | `references/extending.md` | `Alpine.directive()` and `Alpine.magic()` signatures, `evaluateLater`/`effect`/`cleanup`, custom order, authoring plugins, the reactivity engine, async, the CSP build |
+| `references/v2-to-v3.md` | The v2 → v3 upgrade guide — every breaking change and both deprecations. Read it when you meet old Alpine code |
 
 ---
 

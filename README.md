@@ -8,8 +8,8 @@ reads the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| `livewire-development` | ~7,450 | All 98 files of the Livewire 4.x documentation |
-| `alpinejs-development` | ~2,550 | All 55 files of the Alpine.js documentation |
+| `livewire-development` | ~7,650 | All 98 files of the Livewire 4.x documentation |
+| `alpinejs-development` | ~2,790 | All 55 files of the Alpine.js documentation |
 
 ---
 
@@ -97,6 +97,7 @@ Copy the same two directories into whatever skills directory your tool reads —
 | `references/magics-globals.md` | All 9 magics, the 3 globals, `init()`/`destroy()`, the lifecycle events, installing |
 | `references/plugins.md` | All 9 official plugins in full — mask, intersect, persist, collapse, focus/trap, anchor, sort, resize, morph |
 | `references/extending.md` | `Alpine.directive()` and `Alpine.magic()`, `evaluateLater`/`effect`/`cleanup`, authoring plugins, the reactivity engine, async, the CSP build |
+| `references/v2-to-v3.md` | The v2 → v3 upgrade guide — every breaking change and both deprecations |
 
 ---
 
@@ -112,7 +113,12 @@ Written from the primary sources, not from memory:
   [`alpinejs/alpine`](https://github.com/alpinejs/alpine). Version 3.16.3, which
   is what Livewire 4.x bundles.
 
-Coverage was verified file by file against both documentation trees.
+Coverage was verified by extracting the **API surface** from both documentation
+trees — every directive, attribute, magic, global, component method, static,
+test assertion and lifecycle event — and diffing it against the skills. A few
+signatures the documentation omits (`#[Authorize]`, `#[Transition]`,
+`renderIsland()`, `streamIsland()`) were read from the package source and are
+labelled as source-derived where they appear.
 
 **Livewire moves.** Re-check anything version-sensitive against the live docs at
 [livewire.laravel.com/docs/4.x](https://livewire.laravel.com/docs/4.x) before

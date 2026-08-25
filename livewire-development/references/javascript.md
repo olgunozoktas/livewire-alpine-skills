@@ -206,6 +206,11 @@ $wire.interceptRequest('save', callback)
 Livewire.interceptRequest(callback)         // global
 ```
 
+> **`$intercept` is the same API under a `$` name.** Inside a component script,
+> `this.$intercept('save', cb)` and `$wire.$intercept('save', cb)` are equivalent
+> to `$wire.intercept('save', cb)`. The `$`-prefixed form is what the v4 upgrade
+> guide advertises as a magic — use whichever reads better.
+
 ### Action interceptors
 
 ```js
@@ -525,6 +530,14 @@ nesting:
 ```css
 /* you write */   .btn { background: blue; }
 /* served as */   [wire\:name="counter"] { .btn { background: blue; } }
+```
+
+**`wire:name` is a real attribute Livewire puts on every component's root
+element**, holding the component's name. Scoped styles are built on it, and you
+can use it yourself as a CSS or `querySelector` hook:
+
+```js
+document.querySelectorAll('[wire\\:name="counter"]')
 ```
 
 Target the root element itself with `&`:

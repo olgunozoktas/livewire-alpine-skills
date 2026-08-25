@@ -239,6 +239,22 @@ public function createPost()
 
 ### Caching across requests
 
+**`$this->getId()`** returns the component's unique instance id — the way to
+build a cache key scoped to one instance on the page:
+
+```php
+#[Computed]
+public function userName()
+{
+    return Cache::remember('user-name'.$this->getId(), 3600, function () {
+        return User::find($this->userId)->name;
+    });
+}
+```
+
+`#[Computed(persist: true)]` does exactly this for you, so reach for the
+attribute unless you need control over the key or the store:
+
 ```php
 #[Computed(persist: true)]              // per component instance, 3600s default
 #[Computed(persist: true, seconds: 7200)]

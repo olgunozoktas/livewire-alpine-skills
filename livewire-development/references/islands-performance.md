@@ -181,6 +181,29 @@ An outer island's re-render **skips** inner islands by default:
 Any `$wire` method chains off `$island()` — `$refresh()`, `$set()`, `$toggle()`,
 and your own actions.
 
+### Rendering an island from PHP
+
+Two component methods drive an island from the server. **These come from the
+package source (`HandlesIslands`), not the documentation** — the docs cover the
+template and JavaScript sides only.
+
+```php
+public function renderIsland($name, $content = null, $mode = 'morph', $with = [], $mount = false)
+public function streamIsland($name, $content = null, $mode = 'morph', $with = [])
+```
+
+`renderIsland()` re-renders a named island as part of the current response.
+`streamIsland()` pushes island content down mid-request, the way
+`$this->stream()` does for an element — useful for a feed that fills in as
+results arrive.
+
+`$mode` accepts the same values as the `wire:island` modifiers: `'morph'`
+(default), `'append'`, `'prepend'`.
+
+> Signatures read from source at commit `81f35ea`. Verify against your installed
+> version before relying on them — undocumented API can change without a note in
+> the upgrade guide.
+
 ### Constraints — read before using islands
 
 **Islands cannot read template scope.** No `@php` variables, no loop variables.

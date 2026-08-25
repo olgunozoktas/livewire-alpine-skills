@@ -705,8 +705,81 @@ html:active-view-transition-type(backward) {
 That is the wizard pattern — the same markup animating in opposite directions
 depending on which way the user moved.
 
-For a type computed at runtime, use the `transition()` method instead of the
-attribute.
+### The runtime equivalents
+
+The attribute is for a method that always transitions the same way. When the
+direction depends on runtime state, call the methods instead:
+
+```php
+public function goToStep($step)
+{
+    $this->transition(type: $step > $this->step ? 'forward' : 'backward');
+
+    $this->step = $step;
+}
+
+public function reset()
+{
+    $this->skipTransition();
+
+    $this->step = 1;
+}
+```
+
+`$this->transition(type: …)` and `$this->skipTransition()` apply to the current
+request only.
+
+### Unnamed transitions inside a typed swap
+
+When a **typed** transition is active, Livewire treats the whole swap as one
+orchestrated unit. An *unnamed* `wire:transition` inside it stays unnamed and
+rides along with its parent's snapshot, instead of becoming an independent group
+with the browser's default fade.
+
+```blade
+<div wire:transition="slide">
+    <p>Step content</p>
+
+    {{-- unnamed: rides along with the parent's "slide" --}}
+    <div wire:transition>
+        <button>Save</button>
+    </div>
+</div>
+```
+
+Give an inner element an explicit name if it must animate independently:
+
+```blade
+<div wire:transition="badge">...</div>
+```
+
+Outside a typed transition — an ordinary morph, such as a validation error
+appearing — unnamed elements use `match-element` and animate independently as
+before.
+
+### Reduced motion and browser support
+
+Livewire **respects `prefers-reduced-motion` automatically**; transitions are
+disabled when the user has asked for less motion.
+
+| Browser | Support |
+|---|---|
+| Chrome / Edge 111+ | Full |
+| Safari 18+ | Full |
+| Firefox 144+ | Basic view transitions, **no transition types** |
+| Anything older | Elements appear and disappear with no animation — nothing breaks |
+
+Since transition *types* are what drive the wizard pattern, expect Firefox to
+fall back to an untyped transition.
+
+---
+
+## #[Middleware] — does not exist
+
+You may find `#[Middleware(SomeMiddleware::class)]` in blog posts or in a
+commented-out block of Livewire's own `actions.md`. **It is not a shipped
+attribute.** To apply middleware, use route middleware on the page component, or
+`Livewire::addPersistentMiddleware()` — see `advanced.md`.
 
 ---
 
