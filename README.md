@@ -8,8 +8,8 @@ reads the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| `livewire-development` | ~6,400 | Every page of the Livewire 4.x documentation |
-| `alpinejs-development` | ~900 | Every page of the Alpine.js documentation |
+| `livewire-development` | ~7,450 | All 98 files of the Livewire 4.x documentation |
+| `alpinejs-development` | ~2,550 | All 55 files of the Alpine.js documentation |
 
 ---
 
@@ -80,9 +80,11 @@ Copy the same two directories into whatever skills directory your tool reads —
 | `references/islands-performance.md` | Islands, lazy vs deferred loading, `data-loading`, polling, `wire:navigate` and its JS hooks |
 | `references/javascript.md` | Component scripts, the full `$wire` API, interceptors, the `Livewire` global, hooks, custom directives, scoped styles |
 | `references/advanced.md` | Hydration and snapshots, synthesizers, morphing, component hooks, persistent middleware, downloads, package development, CSP, streaming |
+| `references/directives.md` | Every `wire:` directive in full — every modifier, `wire:target`'s four targeting forms |
+| `references/attributes.md` | Every PHP attribute in full — parameters and non-obvious behaviors |
 | `references/alpine.md` | Alpine **inside** Livewire — `$wire`, entangle, morph vs Alpine state, event crossover |
 | `references/testing.md` | Pest setup, every `Livewire::test()` method and assertion, browser testing |
-| `references/reference.md` | Every attribute and directive with parameters, redirects, the full config, troubleshooting |
+| `references/reference.md` | Redirects, Blade directives, the full config, advanced installation, troubleshooting |
 | `references/volt.md` | The Volt functional API, and migrating class-based Volt to core |
 | `references/v3-to-v4.md` | The complete upgrade guide |
 
@@ -91,8 +93,10 @@ Copy the same two directories into whatever skills directory your tool reads —
 | File | Covers |
 |---|---|
 | `SKILL.md` | The mental model, the three rules that cause most bugs, common patterns, Livewire pairing |
-| `references/core.md` | Installing, all 18 directives with modifiers, all 9 magics, the 3 globals, extension API, reactivity, async, CSP |
-| `references/plugins.md` | All 9 official plugins — mask, intersect, persist, collapse, focus/trap, anchor, sort, resize, morph |
+| `references/directives.md` | All 18 directives in full — every `x-on` and `x-model` modifier, every input type, the transition helper *and* class APIs, the `x-bind` object syntax |
+| `references/magics-globals.md` | All 9 magics, the 3 globals, `init()`/`destroy()`, the lifecycle events, installing |
+| `references/plugins.md` | All 9 official plugins in full — mask, intersect, persist, collapse, focus/trap, anchor, sort, resize, morph |
+| `references/extending.md` | `Alpine.directive()` and `Alpine.magic()`, `evaluateLater`/`effect`/`cleanup`, authoring plugins, the reactivity engine, async, the CSP build |
 
 ---
 

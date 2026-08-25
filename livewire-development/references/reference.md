@@ -2,252 +2,31 @@
 
 ---
 
-## PHP attributes
+## PHP attributes and `wire:` directives
 
-All live in `Livewire\Attributes\`. Import them — a missing import is a common
-silent failure, because PHP treats an unresolvable attribute as an error only when
-it is reflected.
+Both moved to dedicated files so each entry could be documented properly rather
+than compressed into a modifier table:
 
-| Attribute | Target | Purpose |
-|---|---|---|
-| `#[Async]` | method | Run in parallel, bypassing the request queue |
-| `#[Authorize]` | method | Gate check before the action runs |
-| `#[Computed]` | method | Memoized derived property |
-| `#[Defer]` | class | Load immediately after page load |
-| `#[Isolate]` | class | Never bundle this component's requests |
-| `#[Js]` | method | Method returns JavaScript to run client-side |
-| `#[Json]` | method | Action returns JSON to JavaScript, skips render |
-| `#[Layout]` | class | Layout for a page component |
-| `#[Lazy]` | class | Load when scrolled into view |
-| `#[Locked]` | property | Refuse client-side modification |
-| `#[Modelable]` | property | Bindable from a parent via `wire:model` |
-| `#[On]` | method | Event listener |
-| `#[Reactive]` | property | Prop updates when the parent changes it |
-| `#[Renderless]` | method | Skip the render phase |
-| `#[Session]` | property | Persist in the session across page loads |
-| `#[Title]` | class | Page title |
-| `#[Transition]` | method | View-transition behavior for an action |
-| `#[Url]` | property | Sync with the URL query string |
-| `#[Validate]` | property | Validation rules |
-| `#[Rule]` | property | **Deprecated** alias for `#[Validate]` |
+- **`attributes.md`** — all 20 PHP attributes, every parameter, and the
+  behaviors that are not obvious (`#[Authorize]`'s four-step argument
+  resolution, `#[Json]`'s promise rejection shape, the three different ways to
+  run JavaScript).
+- **`directives.md`** — every `wire:` directive, every modifier, and
+  `wire:target`'s four targeting forms.
 
-Class-level attributes go between `new` and `class`:
+Quick index:
 
-```php
-new #[Layout('layouts::app')] class extends Component { };
-new #[Title('Create post')] class extends Component { };
-new #[Isolate] class extends Component { };
-```
+**Attributes:** `#[Async]` `#[Authorize]` `#[Computed]` `#[Defer]` `#[Isolate]`
+`#[Js]` `#[Json]` `#[Layout]` `#[Lazy]` `#[Locked]` `#[Modelable]` `#[On]`
+`#[Reactive]` `#[Renderless]` `#[Session]` `#[Title]` `#[Transition]` `#[Url]`
+`#[Validate]` — plus `#[Rule]`, deprecated.
 
-### Parameters
-
-```php
-#[Computed(
-    bool $persist = false,     // cache across requests for this component instance
-    int $seconds = 3600,       // cache duration
-    bool $cache = false,       // cache across ALL component instances
-    ?string $key = null,       // custom cache key
-    mixed $tags = null,        // cache tags (needs a tag-capable driver)
-)]
-
-#[Url(
-    ?string $as = null,        // query parameter alias
-    bool $history = false,     // push to browser history
-    bool $keep = false,        // keep when navigating away
-    mixed $except = null,      // value(s) to omit from the URL
-    mixed $nullable = null,    // value when the parameter is absent
-)]
-
-#[Validate(
-    mixed $rule = null,
-    ?string $attribute = null, // custom attribute name for messages
-    ?string $as = null,        // friendly name in messages
-    mixed $message = null,     // custom message(s)
-    bool $onUpdate = true,     // validate on property update
-    bool $translate = true,    // run messages through trans()
-)]
-
-#[Lazy(bool|null $bundle = null)]
-#[Defer(bool|null $bundle = null)]
-#[Layout(string $name, array $params = [])]
-#[Title(string $content)]
-#[Session(?string $key = null)]
-#[On(string $event)]
-
-#[Authorize(                       // repeatable
-    \UnitEnum|string $ability,
-    array|string|null $argument = null,
-)]
-
-#[Transition(
-    ?string $type = null,          // e.g. 'forward', 'backward'
-    bool $skip = false,            // skip the transition entirely
-)]
-```
-
-`#[Authorize]` names a gate/policy ability, with an optional argument — a property
-name resolves to that property's value:
-
-```php
-#[Authorize('update', 'post')]
-public function save() { $this->post->save(); }
-```
-
-It throws a 403 when the check fails, before the action body runs.
-
-`#[Locked]`, `#[Reactive]`, `#[Renderless]`, `#[Async]`, `#[Modelable]`, `#[Js]`
-and `#[Json]` take no parameters.
-
----
-
-## `wire:` directives
-
-### Actions
-
-```blade
-wire:click="methodName"
-wire:click="methodName(param1, param2)"
-wire:submit="save"
-wire:keydown.enter="search"
-wire:mouseenter="…"
-wire:{any-browser-event}="…"
-```
-
-**Modifiers shared by every event directive** (Alpine's, plus Livewire's):
-
-| Modifier | Effect |
-|---|---|
-| `.prevent` | `preventDefault()` (automatic on `wire:submit`) |
-| `.stop` | `stopPropagation()` |
-| `.self` | Only if the event originated on this element |
-| `.once` | Fire at most once |
-| `.debounce` / `.debounce.500ms` | Debounce (default 250 ms) |
-| `.throttle` / `.throttle.500ms` | Throttle (default 250 ms) |
-| `.window` | Listen on `window` |
-| `.document` | Listen on `document` |
-| `.outside` | Clicks outside the element |
-| `.passive` | Do not block scrolling |
-| `.capture` | Capturing phase |
-| `.camel` | `wire:custom-event` → `customEvent` |
-| `.dot` | `wire:custom-event` → `custom.event` |
-| `.renderless` | Skip re-rendering after the action |
-| `.preserve-scroll` | Keep scroll position |
-| `.async` | Run in parallel instead of queued |
-
-**Key modifiers** for `keydown` / `keyup`: `.shift` `.enter` `.space` `.ctrl`
-`.cmd` `.meta` `.alt` `.up` `.down` `.left` `.right` `.escape` `.tab` `.caps-lock`
-`.equal` `.period` `.slash`. Chain to combine: `wire:keydown.shift.enter`.
-
-### `wire:model`
-
-```blade
-wire:model="propertyName"
-wire:model="property.nested"
-wire:model="property['nested']"
-wire:model="property[0]"
-```
-
-| Modifier | Effect |
-|---|---|
-| `.live` | Send updates to the server |
-| `.blur` | Sync on blur |
-| `.change` | Sync on change |
-| `.enter` | Sync on Enter |
-| `.lazy` | Update on change and request (v3-compatible) |
-| `.debounce.Xms` | Debounce (with `.live`) |
-| `.throttle.Xms` | Throttle (with `.live`) |
-| `.number` | Cast to `int` server-side |
-| `.boolean` | Cast to `bool` server-side |
-| `.fill` | Take the initial value from the `value` attribute |
-| `.deep` | Also listen to child element events |
-| `.renderless` | Skip re-render after a live update |
-| `.preserve-scroll` | Keep scroll position |
-
-### Loading and state
-
-```blade
-wire:loading
-wire:target="action" | "property" | .except="action"
-wire:dirty
-wire:offline
-wire:cloak
-```
-
-`wire:loading` modifiers: `.remove`, `.class="name"`, `.class.remove="name"`,
-`.attr="attribute"`, `.delay` (200 ms), `.delay.shortest|shorter|short` (50/100/150 ms),
-`.delay.long|longer|longest` (300/500/1000 ms), and display hints `.inline-flex`
-`.inline` `.block` `.table` `.flex` `.grid`.
-
-`wire:dirty` modifiers: `.remove`, `.class="name"`. The `$dirty` expression works
-in directives (`wire:show="$dirty"`), takes a property (`$dirty('title')`) or an
-array (`$dirty(['title', 'description'])`), and is `$wire.$dirty()` in Alpine.
-
-`wire:offline` modifiers: `.class="name"`, `.class.remove="name"`, `.attr="attribute"`.
-
-### Rendering control
-
-```blade
-wire:key="unique-id"       {{-- mandatory in loops --}}
-wire:ignore                {{-- exclude from morphing; .self for attributes only --}}
-wire:replace               {{-- replace children rather than morph; .self includes the element --}}
-wire:show="expression"
-wire:text="expression"
-wire:bind:{attribute}="expression"
-wire:transition="name"     {{-- View Transitions API; no modifiers in v4 --}}
-```
-
-`wire:bind` takes any HTML attribute: `wire:bind:class`, `wire:bind:disabled`,
-`wire:bind:href`, `wire:bind:data-state`.
-
-`wire:transition` with no expression uses `match-element` as the transition name.
-
-### Triggers
-
-```blade
-wire:init="action"                    {{-- run once when the component loads --}}
-wire:poll                             {{-- .Ns .Nms .keep-alive .visible --}}
-wire:intersect="action"               {{-- also :enter and :leave --}}
-wire:confirm="message"                {{-- .prompt for "message|expected-input" --}}
-```
-
-`wire:intersect` modifiers: `.once`, `.half`, `.full`, `.threshold.[0-100]`,
-`.margin.[value]` (e.g. `.margin.200px`, `.margin.10%`).
-
-### Navigation
-
-```blade
-wire:navigate            {{-- .hover to prefetch after 60ms --}}
-wire:navigate:scroll     {{-- preserve scroll in a container (was wire:scroll in v3) --}}
-wire:current="classes"   {{-- .exact, .strict --}}
-```
-
-### Islands
-
-```blade
-wire:island="name"
-wire:island.append="name"
-wire:island.prepend="name"
-```
-
-### Sorting
-
-```blade
-<ul wire:sort="updateOrder">
-    @foreach ($items as $item)
-        <li wire:sort:item="{{ $item->id }}" wire:key="{{ $item->id }}">{{ $item->name }}</li>
-    @endforeach
-</ul>
-```
-
-Related: `wire:sort:group="name"`, `wire:sort:group-id="identifier"`,
-`wire:sort:handle`, `wire:sort:ignore`. No modifiers.
-
-### Streaming and references
-
-```blade
-wire:stream="name"     {{-- .replace to swap instead of append --}}
-wire:ref="name"        {{-- reachable as $wire.$refs.name / this.$refs.name --}}
-```
+**Directives:** `wire:click` `wire:submit` `wire:model` `wire:key` `wire:loading`
+`wire:target` `wire:dirty` `wire:offline` `wire:cloak` `wire:confirm`
+`wire:show` `wire:text` `wire:bind` `wire:ignore` `wire:replace`
+`wire:transition` `wire:init` `wire:poll` `wire:intersect` `wire:navigate`
+`wire:navigate:scroll` `wire:current` `wire:island` `wire:sort` `wire:stream`
+`wire:ref`
 
 ---
 

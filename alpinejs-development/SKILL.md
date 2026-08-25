@@ -81,8 +81,10 @@ Two more worth internalizing:
 
 | File | Covers |
 |---|---|
-| `references/core.md` | Installing, every directive with its modifiers, every magic, the three globals, lifecycle and the extension API, reactivity internals, async expressions, CSP, and the Livewire integration rules |
-| `references/plugins.md` | All nine official plugins with their full attribute and modifier sets |
+| `references/directives.md` | All 18 directives in full — every modifier, every caveat, every input type for `x-model`, the transition helper *and* class APIs, the `x-bind` object syntax |
+| `references/magics-globals.md` | All 9 magics in full, `Alpine.data`/`Alpine.store`/`Alpine.bind`, `init()`/`destroy()`, the lifecycle events, and installing |
+| `references/plugins.md` | All 9 official plugins in full — mask, intersect, persist, collapse, focus, anchor, sort, resize, morph |
+| `references/extending.md` | `Alpine.directive()` and `Alpine.magic()` signatures, `evaluateLater`/`effect`/`cleanup`, custom order, authoring plugins, the reactivity engine, async, the CSP build |
 
 ---
 
@@ -158,7 +160,7 @@ initializes.
 
 From a bundle, register between the import and `Alpine.start()`.
 **In a Livewire app, do neither** — bundle through Livewire's ESM entry and call
-`Livewire.start()`. See `references/core.md`.
+`Livewire.start()`. See `references/extending.md`.
 
 ---
 

@@ -259,7 +259,9 @@ from the 4.x docs.
 | `references/alpine.md` | Alpine **inside Livewire**: `$wire`, entangle, morph vs Alpine state, which plugin to prefer, event crossover, bundling plugins. For the Alpine language itself use the **`alpinejs-development`** skill |
 | `references/testing.md` | Pest setup for view-based components, every `Livewire::test()` method and assertion, browser testing with `Livewire::visit()` |
 | `references/advanced.md` | Hydration and snapshots, synthesizers, morphing in depth, component hooks, persistent middleware, downloads, package development, CSP, streaming, bundling |
-| `references/reference.md` | Every PHP attribute with parameters, every `wire:*` directive with modifiers, every Blade directive, redirects, the full config file, troubleshooting |
+| `references/directives.md` | Every `wire:` directive in full — every modifier, `wire:target`'s four targeting forms, the client-side reactive trio (`wire:show`/`wire:text`/`wire:bind`) |
+| `references/attributes.md` | Every PHP attribute in full — parameters, `#[Authorize]`'s argument resolution, `#[Json]`'s promise semantics, the three ways to run JavaScript |
+| `references/reference.md` | Redirects, every Blade directive, the full config file, advanced installation, troubleshooting |
 | `references/volt.md` | The Volt functional API in full, and how to migrate class-based Volt to core |
 | `references/v3-to-v4.md` | Complete upgrade guide and deprecations |
 
