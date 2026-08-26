@@ -1,6 +1,6 @@
 ---
 name: livewire-security
-version: 1.0.0
+version: 1.1.0
 description: 'Use for Livewire security work. Covers what a public property publishes, snapshot serialization, #[Locked], the persistent middleware gap, model class and key disclosure, and response-level leak detection. Use it before you ship a component on a public route. Use it before you put a model on a public property. Use it when a security review must prove that its own checks can fail. Keywords: livewire security, wire:snapshot, dehydrate, hydrate, #[Locked], CannotUpdateLockedPropertyException, ModelSynth, morphMap, PersistentMiddleware, livewire update endpoint, public property leak, IDOR, Livewire::test, canary test, PII, primary key disclosure.'
 ---
 
@@ -316,7 +316,7 @@ skill then gives confident wrong advice, and no person notices.
 
 This tool applies the rule above to the skill. It reads the installed
 `vendor/livewire/livewire` and fails when a statement no longer holds. It checks
-16 statements. Run it after a Livewire upgrade.
+19 statements. Run it after a Livewire upgrade.
 
 The most important check is the one for the persistent middleware list. The skill
 tells a reader that a permission check does **not** run again on an update

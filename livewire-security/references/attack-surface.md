@@ -15,6 +15,15 @@ A statement marked **unverified** needs a test before you rely on it.
 
 This is the most serious item in this file.
 
+**The behaviour is documented. The consequence is not.**
+`docs/computed-properties.md` says the value is cached "across all components in
+your application", and that "every instance of this component in your
+application will share the same cached value". That is accurate. But the example
+caches `Post::query()->pluck('title', 'id')` — global data — and the page
+presents `key:` only as a way to clear the cache by hand, never as a way to
+scope it. No sentence says that a computed property reading `auth()` serves the
+first person's data to everybody else.
+
 `#[Computed]` accepts two different caching options. They use different keys.
 
 `src/Features/SupportComputed/BaseComputed.php:145`:
@@ -224,6 +233,104 @@ the authenticated user instead.
 
 `bin/scan.php` reports this shape. It matches identifier names only, because a
 rule that reports every `#[Url]` property reports mostly correct code.
+---
+
+## 7 · A lazy component publishes its mount parameters
+
+**Undocumented.** `docs/lazy.md` contains no security note.
+
+`#[Lazy]`, or `lazy` on a component tag, defers the render. Livewire must carry
+the mount parameters across that round trip, and it carries them **in the page**.
+
+`src/Features/SupportLazyLoading/SupportLazyLoading.php:162` puts the parameters
+on a throwaway component with two public properties, snapshots it, and then:
+
+```php
+$encoded = base64_encode(json_encode($snapshot));
+```
+
+Base64 is an encoding. It is not encryption. Any person who opens the page source
+can decode every mount parameter of every lazy component.
+
+The snapshot carries a checksum, so the values cannot be **changed** —
+`HandleComponents::snapshot()` calls `Checksum::generate()`, which is an
+HMAC-SHA256 over the snapshot. The parameters are therefore tamper-evident and
+**not confidential**.
+
+A component without `lazy` does not do this. `forMount` appears only in the lazy
+feature.
+
+**So this publishes a token:**
+
+```blade
+<livewire:invoice-panel :invoice="$invoice" :signed-url="$url" lazy />
+```
+
+**Pass an identifier that the component can authorize, and resolve the rest
+inside `mount()`.** Never pass a secret, a signed URL, or a whole record to a
+lazy component.
+
+---
+
+## 8 · A model property rehydrates with global scopes disabled
+
+**Undocumented in the Livewire documentation.**
+
+`src/Features/SupportModels/ModelSynth.php:84` restores a model like this:
+
+```php
+(new $class)->newQueryForRestoration($key)->useWritePdo()->firstOrFail();
+```
+
+Laravel's `Model::newQueryForRestoration()` is:
+
+```php
+return $this->newQueryWithoutScopes()->whereKey($ids);
+```
+
+**Without scopes.** No tenant scope. No `published` scope. No soft-delete scope.
+
+The checksum limits this. A browser cannot change the key, so this is not a way
+to read any row by typing an id. Two cases remain, and both are real:
+
+- **Authority that changed between requests.** A person removed from a team still
+  holds a valid snapshot. Their next action rehydrates the model, and the tenant
+  scope that would now exclude it does not run.
+- **A row deleted between requests.** A soft-deleted model still rehydrates,
+  because `SoftDeletingScope` is a global scope.
+
+**Authorize in the action, against the rehydrated model.** Route middleware and a
+global scope are both absent on this path.
+
+---
+
+## 9 · Spatie's `permission:` middleware cannot be made persistent
+
+Item 5 of `SKILL.md` says that route middleware does not all run again. The
+Livewire documentation covers the mechanism, and covers the limitation. The two
+together are what matter, and neither page draws the conclusion.
+
+`docs/security.md` presents persistent middleware as the protection:
+
+> Persistent middleware protects you from scenarios where the authorization
+> rules or user permissions have changed after the initial page-load.
+
+It then tells you to register your own with
+`Livewire::addPersistentMiddleware()`, and warns:
+
+> **Middleware arguments are not supported.**
+> ```php
+> // Bad...
+> Livewire::addPersistentMiddleware(AuthorizeResource::class.':admin');
+> ```
+
+Spatie's middleware takes the permission **as an argument**:
+`permission:manage billing`. So the documented fix cannot express the common
+case. Registering `PermissionMiddleware::class` persists a middleware with no
+permission to check.
+
+**Call the check inside the component.** That is the only form that survives an
+update request.
 
 ---
 
@@ -239,6 +346,9 @@ identity or another person's data.
 - [ ] No code uses `getClientOriginalName()` as a path.
 - [ ] No sensitive client state survives `livewire:navigating`.
 - [ ] Each `#[Url]` identifier is `#[Locked]`.
+- [ ] No secret, signed URL or whole record is a mount parameter of a `lazy` component.
+- [ ] Every action authorizes against the model it rehydrated, not against the route.
+- [ ] Permission checks live inside the component, not only in `permission:` middleware.
 - [ ] Each public method that reads or writes a record authorizes.
 - [ ] `bin/scan.php` reports nothing, or reports only recorded exceptions.
 - [ ] `bin/verify-facts.php` reports that every statement still holds.

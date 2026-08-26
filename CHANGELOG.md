@@ -8,6 +8,45 @@ one line when a newer release exists. It stays silent in every other case.
 
 ---
 
+## 1.1.0 — 2026-08-26
+
+Three findings, each read in the Livewire source and each checked against the
+official documentation before it was written down.
+
+### Added to `livewire-security/references/attack-surface.md`
+
+- **A lazy component publishes its mount parameters.** `SupportLazyLoading.php`
+  base64-encodes them into the page. Base64 is an encoding, not encryption, so
+  any reader of the page source can decode them. The snapshot checksum makes
+  them tamper-evident and does not make them confidential. A component without
+  `lazy` does not do this. **Undocumented** — `docs/lazy.md` carries no security
+  note.
+- **A model property rehydrates with global scopes disabled.**
+  `ModelSynth.php` restores through `newQueryForRestoration()`, which Laravel
+  defines as `newQueryWithoutScopes()->whereKey($ids)`. No tenant scope, no
+  soft-delete scope. The checksum bounds it: a browser cannot change the key.
+  Two cases remain — authority that changed between requests, and a row
+  soft-deleted between requests. **Undocumented** in the Livewire documentation.
+- **Spatie's `permission:` middleware cannot be made persistent.** The Livewire
+  documentation presents persistent middleware as the protection against changed
+  permissions, and separately warns that middleware **arguments** are not
+  supported. Spatie carries the permission as an argument, so the documented fix
+  cannot express the common case. Both halves are documented; the conclusion is
+  not drawn on either page.
+
+### Changed
+
+- The cached-computed item now states the documentation position. The behaviour
+  IS documented — "across all components in your application" — while the
+  security consequence is not, and `key:` is presented only as a way to clear
+  the cache by hand rather than to scope it. The documented example caches
+  global data.
+- `bin/verify-facts.php` holds 19 statements, up from 16. The three new ones
+  cover the lazy encoding, the restoration query, and the checksum that bounds
+  both.
+
+---
+
 ## 1.0.0 — 2026-08-26
 
 The first numbered release. Everything before this shipped without a version.

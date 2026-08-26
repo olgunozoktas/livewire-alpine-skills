@@ -103,6 +103,18 @@ $checks = [
     checkFile($vendor, 'src/Features/SupportComputed/BaseComputed.php', "'lw_computed.'.\$this->component->getId()",
         'Computed persist: true is still keyed on the component INSTANCE id'),
 
+    // A lazy component base64-encodes its mount parameters into the page.
+    checkFile($vendor, 'src/Features/SupportLazyLoading/SupportLazyLoading.php', 'base64_encode',
+        'A lazy component still base64-encodes its mount parameters into the page'),
+
+    // A model property rehydrates with global scopes disabled.
+    checkFile($vendor, 'src/Features/SupportModels/ModelSynth.php', 'newQueryForRestoration',
+        'A model property still rehydrates through newQueryForRestoration, which drops global scopes'),
+
+    // The snapshot is tamper-evident, which is what bounds the two above.
+    checkFile($vendor, 'src/Mechanisms/HandleComponents/Checksum.php', 'hash_hmac',
+        'The snapshot checksum is still an HMAC, so a browser cannot change a model key'),
+
     // An event listener is reachable from the browser through __dispatch.
     checkFile($vendor, 'src/Features/SupportEvents/SupportEvents.php', "__dispatch",
         'A browser can still reach an #[On] listener through __dispatch'),
