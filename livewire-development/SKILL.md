@@ -18,6 +18,33 @@ branch at commit `81f35ea` (2026-08-24).
 
 ---
 
+## Before anything: follow the project's existing conventions
+
+**Inspect the project before applying any default in this skill.** Livewire v4's
+defaults are what a *new* project gets — an existing codebase may deliberately
+use something else, and matching it matters more than being idiomatic.
+
+```bash
+ls app/Livewire/ resources/views/livewire/ resources/views/components/
+grep -n "make_command\|component_locations\|component_namespaces" config/livewire.php
+```
+
+- **A component format already in use wins.** If the app is class-based
+  throughout, write class-based — do not introduce single-file components into
+  it because v4 prefers them.
+- **`make_command.emoji` may be `false`.** Then filenames carry **no** `⚡`
+  prefix, and every path in this skill loses it.
+- **`make_command.type`** may be `'class'` or `'mfc'`.
+- **`component_locations` and `component_namespaces`** may put components
+  somewhere other than `resources/views/components/`.
+- **Check the installed version.** This skill is v4. On v3 or v2 much of it is
+  wrong — check `composer.json`.
+
+Only fall back to the defaults below when the project has established no
+convention of its own.
+
+---
+
 ## STOP — v4 changed defaults your training data gets wrong
 
 Most Livewire knowledge in circulation is v2 or v3. These twelve items are the
