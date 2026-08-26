@@ -47,7 +47,7 @@ if [ "${1:-}" = "--paths" ]; then
     exit 0
 fi
 
-echo "== The Livewire stack — two skills, one workflow"
+echo "== The Livewire stack — one workflow"
 echo
 echo "LIVEWIRE   $LW_DIR"
 echo "  SKILL.md                       always read this first"
@@ -87,3 +87,9 @@ echo
 echo "== Reviewers (both gate on exit code)"
 echo "  python3 $LW_DIR/bin/review.py <file>"
 echo "  python3 $AL_DIR/bin/review.py <file>"
+
+# A POINTER, NOT A LOAD. Most Livewire work does not need the security skill,
+# and loading it every time would train a reader to skip it.
+echo ""
+echo "SECURITY   read livewire-security before a component goes on a public route,"
+echo "           or during a security review. It is a separate skill on purpose."

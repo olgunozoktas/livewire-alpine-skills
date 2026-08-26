@@ -4,7 +4,7 @@ An [Agent Skill](https://agentskills.io/what-are-skills) for the security half o
 **Laravel Livewire v4**. It covers what a component publishes, what a browser can
 change, and how to detect a leak in the response.
 
-The `livewire-development` skill covers all other Livewire work. This skill is
+The `livewire-reference` skill covers all other Livewire work. This skill is
 separate because a reader needs it at a different time. A reader needs it before
 a component goes on a public route, and during a security review.
 

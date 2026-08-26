@@ -1,4 +1,4 @@
-# livewire-development
+# livewire-reference
 
 An [Agent Skill](https://agentskills.io/what-are-skills) for **Laravel Livewire v4** —
 written from all 98 files of the official documentation, with recipes that are
@@ -123,8 +123,10 @@ the duplicated-Alpine check could never fire.
 
 ## Using it with Laravel Boost
 
-Boost ships a skill with the **identical name**. Boost documents that a
-project-level skill of that name overrides its built-in one, so both may exist.
+Boost ships its own Livewire skill, named `livewire-development`. This skill
+carried that same name until 2026-08-26. An identical name reads as a
+replacement for Boost's skill, which was never the intent, so this one is now
+`livewire-reference`.
 
 **They are complementary — run both.** Boost knows your Livewire version and
 reads your config; it is terse because it is paired with a live `search-docs`

@@ -1,5 +1,13 @@
 # Livewire v4 + Alpine.js — Agent Skills
 
+[![Skills](https://img.shields.io/badge/skills-3-0f172a)](#whats-inside)
+[![Self-tests](https://img.shields.io/badge/self--tests-105%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
+[![Recipes](https://img.shields.io/badge/recipes-executed%20%C2%B7%2014%20tests%2C%2054%20assertions-2ea44f)](#the-recipes-are-executed-not-just-written)
+[![Livewire](https://img.shields.io/badge/livewire-v4.4.2-fb70a9)](https://livewire.laravel.com)
+[![Alpine.js](https://img.shields.io/badge/alpine.js-v3-77c1d2)](https://alpinejs.dev)
+[![Lines](https://img.shields.io/badge/skill%20content-14,716%20lines-64748b)](#whats-inside)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Three [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
 assistant **Laravel Livewire v4** and **Alpine.js v3** accurately — with complete
 working recipes, a symptom-to-fix troubleshooting guide, version detection, and
@@ -10,19 +18,29 @@ the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| [`livewire-development`](livewire-development/) | 10,603 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
+| [`livewire-reference`](livewire-reference/) | 10,603 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
 | [`alpinejs-development`](alpinejs-development/) | 3,132 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
 | [`livewire-security`](livewire-security/) | 979 | What a component publishes, what a browser can change, and how to detect a leak |
 
 Each skill has its own README with the full file map. Line counts are the
 skill content — `README.md` excluded, so they do not move when this page does.
 
-**Invoke `livewire-development` for the stack.** `livewire-security` is separate
+> **Renamed 2026-08-26.** `livewire-development` is now **`livewire-reference`**.
+> Laravel Boost ships its own skill under the old name, and an identical name
+> read as a replacement for it. Update any copy you installed:
+> `rm -rf ~/.claude/skills/livewire-development` and copy `livewire-reference`
+> in its place. Nothing else changed.
+
+**Every badge above is a local measurement, not a CI run.** This repository has
+no GitHub Actions workflow. The self-test counts come from the three commands in
+[Validation](#validation); run them yourself and the numbers should match.
+
+**Invoke `livewire-reference` for the stack.** `livewire-security` is separate
 because it is read at a different moment — before shipping a component on a
 public route, or during a security review — and because most Livewire work does
 not need it.
 
-**Invoke `livewire-development` and you get both halves of the stack.** Livewire bundles Alpine, so
+**Invoke `livewire-reference` and you get both halves of the stack.** Livewire bundles Alpine, so
 real work touches both halves — `bash bin/stack.sh` finds the Alpine skill and
 prints both file maps. They stay two skills because Alpine also runs with Rails,
 Django and Hotwire.
@@ -83,7 +101,7 @@ What the skills are actually for. Each names the file that answers it.
 
 ```bash
 git clone https://github.com/olgunozoktas/livewire-alpine-skills.git /tmp/lw-skills
-cp -R /tmp/lw-skills/livewire-development   ~/.claude/skills/
+cp -R /tmp/lw-skills/livewire-reference   ~/.claude/skills/
 cp -R /tmp/lw-skills/alpinejs-development   ~/.claude/skills/
 cp -R /tmp/lw-skills/livewire-security      ~/.claude/skills/
 ```
@@ -91,12 +109,12 @@ cp -R /tmp/lw-skills/livewire-security      ~/.claude/skills/
 Per-project instead of global: copy into `.claude/skills/` in the repo.
 
 Restart the session. The assistant loads a skill on its own when the task
-matches; `/livewire-development` invokes it explicitly.
+matches; `/livewire-reference` invokes it explicitly.
 
 ### One invocation covers both
 
 Livewire bundles Alpine, so real work touches both. From a Laravel project you
-only need to invoke **`livewire-development`** — it is the entry point for the
+only need to invoke **`livewire-reference`** — it is the entry point for the
 whole stack:
 
 ```bash
@@ -117,9 +135,13 @@ Copy the same two directories into whatever skills directory your tool reads —
 
 ## Using this alongside Laravel Boost
 
-Boost ships **its own skill with the identical name**, `livewire-development`.
-Boost documents that a project-level skill of that name overrides its built-in
-one, so both may be present.
+Boost ships its own Livewire skill, named `livewire-development`
+(`author: laravel`), and installs it into `.ai/skills/`.
+
+**This skill used to carry that same name, and no longer does.** An identical
+name reads as a replacement for Boost's skill, which was never the intent. Boost
+documents that a project-level skill of the same name overrides its built-in
+one — so the old name did not break anything, it just said the wrong thing.
 
 **They are complementary — run both.** Boost knows your Livewire version and
 reads your `config/livewire.php`; it is deliberately terse because it is paired
@@ -176,7 +198,7 @@ Livewire is newer than this skill's verification.
 
 ## What's inside
 
-### `livewire-development`
+### `livewire-reference`
 
 | File | Covers |
 |---|---|
@@ -293,7 +315,7 @@ Every component in `references/recipes.md` is rendered and exercised against a
 real Livewire install:
 
 ```bash
-cd livewire-development && bash bin/verify-recipes.sh
+cd livewire-reference && bash bin/verify-recipes.sh
 ```
 
 It scaffolds a throwaway Laravel + Livewire 4 app, extracts each recipe into a
@@ -311,10 +333,33 @@ missed, because both fail at runtime rather than at review:
   `Livewire\Component::reset()`
 - four blocks called `Auth::user()` with no facade import — a fatal error
 
+## Validation
+
+Every badge above is a number you can reproduce. There is no CI run behind them.
+
+```bash
+php    livewire-security/bin/scan.php        --self-test   # 22 checks
+python3 livewire-reference/bin/review.py     --self-test   # 53 checks
+python3 alpinejs-development/bin/review.py   --self-test   # 30 checks
+                                                           # 105 total
+
+# Are the security skill's statements still true of the installed Livewire?
+php livewire-security/bin/verify-facts.php <path-to-a-laravel-app>   # 16 statements
+
+# The recipe gate. Scaffolds a throwaway Laravel app and runs every recipe.
+bash livewire-reference/bin/verify-recipes.sh                        # 14 tests, 54 assertions
+```
+
+The first three need no network and no Laravel install. `verify-facts.php` needs
+a project with `livewire/livewire` in `vendor/`. `verify-recipes.sh` needs
+Composer, PHP and a temporary directory.
+
+---
+
 ## Staying current
 
 ```bash
-cd livewire-development && bash bin/refresh.sh
+cd livewire-reference && bash bin/refresh.sh
 ```
 
 Re-clones both documentation sets, extracts the API surface, and reports

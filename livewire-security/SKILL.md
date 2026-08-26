@@ -12,7 +12,7 @@ causes most of the difference.
 the code in `vendor/` and ran it. Every statement about the framework is
 verified by execution. The text names a version when the version is important.
 
-Use the `livewire-development` skill for all other Livewire work.
+Use the `livewire-reference` skill for all other Livewire work.
 
 ---
 

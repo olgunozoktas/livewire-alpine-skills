@@ -1,6 +1,6 @@
 ---
 name: alpinejs-development
-description: 'Use for all Alpine.js v3 work. Covers x-data, x-show, x-if, x-for, x-model, x-transition, x-bind, x-on, magic properties, stores, custom directives, CSP, official plugins, and Livewire integration. Use it before you create, change, review, or debug Alpine behavior in Blade, Livewire, Rails, Django, Hotwire, or plain HTML. Use livewire-development as the entry point inside Laravel Livewire projects. Keywords: alpine, alpinejs, x-data, x-init, x-show, x-if, x-for, x-model, x-modelable, x-bind, x-on, x-text, x-html, x-effect, x-ref, x-cloak, x-ignore, x-teleport, x-transition, x-id, $refs, $store, $watch, $dispatch, $nextTick, Alpine.data, Alpine.store, Alpine.bind, Alpine.directive, Alpine.reactive.'
+description: 'Use for all Alpine.js v3 work. Covers x-data, x-show, x-if, x-for, x-model, x-transition, x-bind, x-on, magic properties, stores, custom directives, CSP, official plugins, and Livewire integration. Use it before you create, change, review, or debug Alpine behavior in Blade, Livewire, Rails, Django, Hotwire, or plain HTML. Use livewire-reference as the entry point inside Laravel Livewire projects. Keywords: alpine, alpinejs, x-data, x-init, x-show, x-if, x-for, x-model, x-modelable, x-bind, x-on, x-text, x-html, x-effect, x-ref, x-cloak, x-ignore, x-teleport, x-transition, x-id, $refs, $store, $watch, $dispatch, $nextTick, Alpine.data, Alpine.store, Alpine.bind, Alpine.directive, Alpine.reactive.'
 ---
 
 # Alpine.js v3
@@ -79,11 +79,11 @@ Two more worth internalizing:
 
 ## Working in a Laravel project?
 
-Invoke **`livewire-development`** instead — it is the entry point for the whole
+Invoke **`livewire-reference`** instead — it is the entry point for the whole
 stack and pulls this skill in:
 
 ```bash
-bash bin/stack.sh          # in the livewire-development skill
+bash bin/stack.sh          # in the livewire-reference skill
 ```
 
 This skill stands alone for Alpine outside Laravel — Rails, Django, Hotwire, or
@@ -223,4 +223,4 @@ The pairing rules:
 - **`wire:transition` is not `x-transition`.** In Livewire v4 it uses the View
   Transitions API and takes no modifiers.
 
-For the Livewire half of all this, use the `livewire-development` skill.
+For the Livewire half of all this, use the `livewire-reference` skill.

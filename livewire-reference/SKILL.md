@@ -1,5 +1,5 @@
 ---
-name: livewire-development
+name: livewire-reference
 description: 'Use for all Laravel Livewire work. Covers Livewire v4 components, page routes, wire directives, PHP attributes, forms, validation, uploads, pagination, tables, modals, events, islands, performance, JavaScript, Alpine integration, Volt, Pest tests, upgrades, and debugging. Use it before you create, change, review, test, or optimize a Livewire component. It detects v2, v3, and v4 differences. Livewire v4 defaults differ from v2 and v3. Run bin/stack.sh first to load the paired Alpine skill map. Use Laravel Boost search-docs for facts newer than this snapshot. Keywords: livewire, wire:model, wire:click, wire:submit, wire:navigate, wire:poll, wire:loading, wire:key, wire:island, Livewire\Component, Route::livewire, #[Computed], #[Validate], #[Locked], #[On], #[Url], #[Lazy], #[Async], #[Authorize], $wire, Volt, SFC, form object, hydrate, morph, snapshot, Livewire::test.'
 ---
 
@@ -179,15 +179,17 @@ Reference: `references/volt.md`.
 
 ### Working alongside Laravel Boost
 
-Boost ships **its own skill with the identical name**, `livewire-development`,
-installed into `.ai/skills/` when a project has `livewire/livewire`. Boost
-documents that a project-level skill of that name **overrides** its built-in one,
-so both may be present.
+Boost ships its own Livewire skill, named `livewire-development`
+(`author: laravel`), installed into `.ai/skills/`. **This skill carried that same
+name until 2026-08-26.** An identical name reads as a replacement for Boost's
+skill, which was never the intent. Boost documents that a project-level skill of
+the same name overrides its built-in one, so the old name broke nothing — it
+simply said the wrong thing.
 
 They are complementary, not rivals — use both:
 
 ```bash
-ls .ai/skills/livewire-development/ 2>/dev/null && echo "Boost skill present"
+ls .ai/skills/livewire-reference/ 2>/dev/null && echo "Boost skill present"
 grep -q 'laravel/boost' composer.json && echo "Boost installed"
 ```
 

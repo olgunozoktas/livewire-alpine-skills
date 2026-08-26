@@ -124,7 +124,7 @@ say ""
 say "== Tooling"
 if grep -q '"laravel/boost"' composer.json 2>/dev/null; then
     kv "laravel/boost" "installed — use its search-docs for anything newer than this skill"
-    [ -d .ai/skills/livewire-development ] && warn ".ai/skills/livewire-development exists — Boost's skill, same name as this one"
+    [ -d .ai/skills/livewire-reference ] && warn ".ai/skills/livewire-reference exists — Boost's skill, same name as this one"
 else
     kv "laravel/boost" "not installed"
 fi

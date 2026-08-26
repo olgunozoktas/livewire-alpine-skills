@@ -1,7 +1,7 @@
 """Extract every code block from recipes.md into real files in the test app."""
 import re, os, sys, io
 
-RECIPES = os.path.expanduser('~/Herd/olgun-skills/skills/laravel/livewire-development/references/recipes.md')
+RECIPES = os.path.expanduser('~/Herd/olgun-skills/skills/laravel/livewire-reference/references/recipes.md')
 APP = sys.argv[1]
 
 s = io.open(RECIPES, encoding='utf-8').read()
