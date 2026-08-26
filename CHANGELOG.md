@@ -8,6 +8,50 @@ one line when a newer release exists. It stays silent in every other case.
 
 ---
 
+## 1.3.1 — 2026-08-27
+
+### Fixed — `scan.php` reported a clean bill of health for trees it never read
+
+`scanPath()` resolved its conventional directories UNDER the given root, so
+`scan.php app` looked for `app/app` and `app/resources/views`, found neither,
+read **zero files**, and printed `0 finding(s)` with exit code 0.
+
+Found by using the tool during a real audit: `scan.php .` reported 3 findings in
+a file that `scan.php app` called clean.
+
+**That is the worst failure a checker has**, because it is indistinguishable
+from success. Three changes:
+
+- A root with none of the conventional directories is now scanned **directly**,
+  so `app`, `app/Livewire` or a single package all work.
+- The output names what it read — `3 finding(s) in 890 file(s)` — so a wrong
+  path is visible in the number.
+- Reading zero files is now an **error, exit 2**, not a clean result.
+
+Two self-tests cover the walk itself rather than the rules: an empty directory
+must read 0 files, and a plain directory of PHP that is not an app root must
+read its files. 24 self-tests, up from 22.
+
+### Fixed — the Alpine URL rule was wrong 14 times out of 14
+
+`bind-url-no-scheme-check` fired on Blade's `:prop="$var"` component bindings,
+which collide with Alpine's `:attr` shorthand. On a real 343-template
+application it produced 14 findings and **every one was a Blade binding**. A
+rule that is wrong every time is a rule people switch off.
+
+`looks_like_php()` now tells them apart: an attribute value beginning with `$`
+is a PHP variable unless it is one of Alpine's own magics (`$el`, `$store`,
+`$wire`, …), and any `->`, `::` or Laravel helper call is a PHP tell.
+
+It tests the **raw fragment**, not a neatly extracted value — the rule's own
+regex stops at the first inner quote, so `:href="$routes->url('` arrives
+unbalanced and unparsable while the `->` in it is plainly there. Extracting
+first was the version that did not work.
+
+Same application after the fix: **0 URL findings, 4 real ones left.**
+
+---
+
 ## 1.3.0 — 2026-08-27
 
 ### Added — a fifth skill, `alpinejs-security`

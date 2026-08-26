@@ -1,6 +1,6 @@
 ---
 name: alpinejs-security
-version: 1.3.0
+version: 1.3.1
 description: 'Use for Alpine.js security work. Covers the two injection seams — the VALUE a directive assigns, and the ATTRIBUTE EXPRESSION itself, which Alpine compiles with new Function. Explains why HTML-escaping a server value into x-data, x-on or x-init does NOT protect it, what x-* means for an HTML sanitiser, and what is user-controlled once state reaches the browser. Use it before you interpolate server data into any x-* attribute, before you use x-html, before you $persist anything, and when reviewing Blade or any server template that renders Alpine. Keywords: alpine security, alpinejs xss, x-data injection, x-html, x-on injection, x-init, new Function, unsafe-eval, CSP build, Alpine.evaluate, MutationObserver, sanitiser, DOMPurify, $persist localStorage, Alpine.store, x-model number, x-bind javascript url, x-teleport, $wire console.'
 ---
 

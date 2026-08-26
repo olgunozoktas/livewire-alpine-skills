@@ -142,10 +142,32 @@ function findings(string $file, string $source): array
     return $out;
 }
 
+/**
+ * How many PHP files the last scanPath() call actually read.
+ *
+ * A scanner that finds nothing because it READ nothing must never print the
+ * same thing as a scanner that found nothing because the code is clean. That
+ * failure is silent, it looks like a clean bill of health, and it is how a
+ * check stops being a check. MEASURED: `scan.php app` reported "0 finding(s)"
+ * while reading zero files, because the conventional directories were resolved
+ * under the given root as `app/app` and did not exist.
+ */
+$GLOBALS['scannedFileCount'] = 0;
+
 function scanPath(string $root): array
 {
     $all = [];
-    $dirs = [$root.'/app', $root.'/resources/views', $root.'/packages'];
+    $GLOBALS['scannedFileCount'] = 0;
+
+    $conventional = [$root.'/app', $root.'/resources/views', $root.'/packages'];
+    $dirs = array_values(array_filter($conventional, 'is_dir'));
+
+    // Given a directory that is not an application root — `app`,
+    // `app/Livewire`, a single package — scan it directly rather than
+    // reporting a clean result for a tree nobody looked at.
+    if ($dirs === [] && is_dir($root)) {
+        $dirs = [$root];
+    }
 
     foreach ($dirs as $dir) {
         if (! is_dir($dir)) {
@@ -176,6 +198,7 @@ function scanPath(string $root): array
                 continue;
             }
 
+            $GLOBALS['scannedFileCount']++;
             $source = (string) file_get_contents($f->getPathname());
             $all = array_merge($all, findings(str_replace($root.'/', '', $f->getPathname()), $source));
         }
@@ -253,7 +276,43 @@ function selfTest(): int
         }
     }
 
-    printf("livewire-security scan.php self-test — %d/%d checks passed\n", count($cases) - $failed, count($cases));
+    // The WALK, not the rules. A scanner that reads no files must not report
+    // the same thing as a scanner that read everything and found nothing.
+    //
+    // This regression is why the check exists: scanPath() resolved its
+    // conventional directories UNDER the given root, so `scan.php app` looked
+    // for `app/app` and `app/resources/views`, found neither, read zero files,
+    // and printed "0 finding(s)". It reported a clean bill of health for a tree
+    // it never opened, and it did so with exit code 0.
+    $walkCases = 0;
+    $emptyDir = sys_get_temp_dir().'/lw-scan-selftest-'.getmypid();
+    @mkdir($emptyDir, 0755, true);
+
+    scanPath($emptyDir);
+    $walkCases++;
+
+    if ($GLOBALS['scannedFileCount'] !== 0) {
+        $failed++;
+        printf("  FAIL  %-32s expected to read 0 files\n", 'walk/empty-dir');
+    }
+
+    // And it must READ a plain directory of PHP that is not an app root.
+    file_put_contents($emptyDir.'/Thing.php', "<?php class Thing { public \$email = ''; }");
+    scanPath($emptyDir);
+    $walkCases++;
+
+    if ($GLOBALS['scannedFileCount'] !== 1) {
+        $failed++;
+        printf("  FAIL  %-32s expected to read 1 file, read %d\n",
+            'walk/plain-dir', $GLOBALS['scannedFileCount']);
+    }
+
+    @unlink($emptyDir.'/Thing.php');
+    @rmdir($emptyDir);
+
+    $total = count($cases) + $walkCases;
+
+    printf("livewire-security scan.php self-test — %d/%d checks passed\n", $total - $failed, $total);
 
     return $failed === 0 ? 0 : 1;
 }
@@ -277,6 +336,17 @@ foreach ($found as [$file, $line, $rule, $code]) {
     printf("%s:%d  [%s]\n      %s\n      %s\n\n", $file, $line, $rule, RULES[$rule], $code);
 }
 
-printf("%d finding(s)\n", count($found));
+$scanned = $GLOBALS['scannedFileCount'];
+
+// Read nothing? Say so, and fail. "0 findings" over an empty read is a clean
+// bill of health nobody earned.
+if ($scanned === 0) {
+    fwrite(STDERR, "scan.php read NO php files under \"{$root}\".\n"
+        ."This is not a clean result. Check the path.\n");
+
+    exit(2);
+}
+
+printf("%d finding(s) in %d file(s)\n", count($found), $scanned);
 
 exit(count($found) === 0 ? 0 : 1);

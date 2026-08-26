@@ -1,7 +1,7 @@
 # Livewire v4 + Alpine.js — Agent Skills
 
 [![Skills](https://img.shields.io/badge/skills-5-0f172a)](#whats-inside)
-[![Self-tests](https://img.shields.io/badge/self--tests-150%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
+[![Self-tests](https://img.shields.io/badge/self--tests-152%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
 [![Recipes](https://img.shields.io/badge/recipes-executed%20%C2%B7%2014%20tests%2C%2054%20assertions-2ea44f)](#the-recipes-are-executed-not-just-written)
 [![Livewire](https://img.shields.io/badge/livewire-v4.4.2-fb70a9)](https://livewire.laravel.com)
 [![Alpine.js](https://img.shields.io/badge/alpine.js-v3-77c1d2)](https://alpinejs.dev)
@@ -396,7 +396,7 @@ python3 alpinejs-security/bin/review-security.py    --self-test # 26 checks
 php     livewire-security/bin/check-update.sh   --self-test   #  6 checks
 python3 livewire-reference/bin/review.py        --self-test   # 53 checks
 python3 alpinejs-reference/bin/review.py        --self-test   # 30 checks
-#                                                              150 total
+#                                                              152 total
 
 # Are the security skill's statements still true of the installed Livewire?
 php     livewire-security/bin/verify-facts.php <laravel-app>    # 28 statements

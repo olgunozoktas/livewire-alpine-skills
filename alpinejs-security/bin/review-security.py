@@ -102,6 +102,42 @@ RULES = [
 ]
 
 
+# Alpine's own magics are the only `$name` identifiers that are JavaScript.
+# Anything else beginning with `$` inside an attribute is a PHP variable, which
+# means the attribute is Blade's `:prop="$var"` component binding and not
+# Alpine's `:attr` shorthand at all.
+#
+# MEASURED on a real 343-template application: without this the URL rule
+# produced 14 findings and all 14 were Blade bindings. A rule that is wrong
+# every time is a rule people switch off.
+ALPINE_MAGICS = (
+    "$el", "$refs", "$store", "$watch", "$dispatch", "$nextTick",
+    "$id", "$root", "$data", "$persist", "$queryString", "$wire",
+)
+
+PHP_TELL = re.compile(r"->|::|\b(?:__|e|route|url|asset|trans|config)\s*\(")
+
+
+def looks_like_php(fragment):
+    """True when an attribute's value is PHP rather than an Alpine expression.
+
+    It tests the RAW fragment, not a neatly extracted value. A rule regex may
+    stop at the first inner quote -- `:href="$routes->url('` -- which leaves the
+    fragment unbalanced and unparsable as a quoted value, while the PHP tell it
+    contains is still plainly there.
+    """
+    if PHP_TELL.search(fragment):
+        return True
+
+    # The text just after the attribute's opening quote.
+    m = re.search(r"""=\s*["']\s*(?P<head>[^\s"']{0,40})""", fragment)
+    if not m:
+        return False
+
+    dollar = re.match(r"""\$\w+""", m.group("head"))
+
+    return bool(dollar and dollar.group(0) not in ALPINE_MAGICS)
+
 def line_of(src, pos):
     return src.count("\n", 0, pos) + 1
 
@@ -116,7 +152,7 @@ def scan(src, path="<input>"):
             # JavaScript. Telling them apart removes the whole false-positive
             # class that made an earlier checker unusable.
             if rid in ("bind-url-no-scheme-check", "server-interp-in-expression"):
-                if re.search(r"""=\s*["'][^"']*(?:\$\w+\s*->|::|\w+\(\s*['"]?\w*['"]?\s*\)\s*->)""", m.group(0)):
+                if looks_like_php(m.group(0)):
                     continue
 
             # A literal expression is the documented, correct use.
