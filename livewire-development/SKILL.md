@@ -1,6 +1,6 @@
 ---
 name: livewire-development
-description: Expert knowledge of Laravel Livewire v4 (livewire.laravel.com/docs/4.x). Use this skill for ANY Livewire work in a Laravel app — creating or editing components, wire:* directives, PHP attributes, forms, validation, file uploads, pagination, events, Laravel Echo broadcasting, lifecycle hooks, nesting, slots, islands, lazy/deferred loading, loading states, wire:navigate SPA mode, Alpine/$wire integration, JavaScript interceptors, scoped styles, synthesizers, component hooks, CSP, testing with Pest, Volt, or upgrading v3 to v4. Livewire v4 changed its DEFAULTS in ways that contradict v2/v3 training data — single-file components are the default, Route::livewire() replaces Route::get(), wire:model modifiers changed meaning, and only Volt's class-based half moved into core. Read this skill BEFORE writing any Livewire code. Keywords: livewire, wire:model, wire:click, wire:submit, wire:navigate, wire:poll, wire:loading, wire:key, wire:island, wire:sort, wire:intersect, wire:ref, wire:stream, wire:bind, wire:text, wire:current, Livewire\Component, mount(), #[Computed], #[Validate], #[Locked], #[On], #[Url], #[Lazy], #[Async], #[Json], #[Authorize], @island, @persist, @placeholder, @assets, @teleport, $wire, $refresh, $dispatch, data-loading, data-current, Volt, single-file component, SFC, MFC, form object, hydrate, dehydrate, morph, snapshot, synthesizer, Livewire::test.
+description: Expert knowledge of Laravel Livewire v4 (livewire.laravel.com/docs/4.x) — the deep reference, with complete working recipes and a symptom-to-fix troubleshooting guide. Use for ANY Livewire work: creating or editing components, wire:* directives, PHP attributes, forms, validation, file uploads, pagination, search/filter/sort tables, modals, wizards, infinite scroll, optimistic UI, events, Laravel Echo broadcasting, lifecycle hooks, nesting, slots, islands, lazy/deferred loading, loading states, wire:navigate SPA mode, Alpine/$wire integration, JavaScript interceptors, scoped styles, synthesizers, component hooks, CSP, testing with Pest, Volt, or debugging a broken component. ALSO use it to detect which Livewire version a project is on — it covers v3 differences and what does not exist before v4. Livewire v4 changed its DEFAULTS in ways that contradict v2/v3 training data: single-file components are the default, Route::livewire() replaces Route::get(), wire:model modifiers changed meaning, and only Volt's class-based half moved into core. Read this skill BEFORE writing any Livewire code. Complements Laravel Boost's skill of the same name — use Boost's search-docs for anything newer than this snapshot. Keywords: livewire, wire:model, wire:click, wire:submit, wire:navigate, wire:poll, wire:loading, wire:key, wire:target, wire:island, wire:sort, wire:intersect, wire:ref, wire:stream, wire:bind, wire:text, wire:current, wire:dirty, Livewire\Component, mount(), #[Computed], #[Validate], #[Locked], #[On], #[Url], #[Lazy], #[Async], #[Json], #[Authorize], #[Transition], @island, @persist, @placeholder, @assets, @teleport, $wire, $refresh, $dispatch, data-loading, data-current, Volt, single-file component, SFC, MFC, form object, hydrate, dehydrate, morph, snapshot, synthesizer, Livewire::test, wire:key error, snapshot missing, multiple instances of Alpine.
 ---
 
 # Livewire v4
@@ -12,9 +12,40 @@ serialization. It bundles Alpine.js, so Alpine is always available.
 **Requirements:** Laravel 10+, PHP 8.1+. Install with `composer require livewire/livewire`.
 Auto-discovery does the rest — there is no provider to register.
 
-Source of truth: `livewire.laravel.com/docs/4.x` and the `docs/` directory of
-`github.com/livewire/livewire` on branch `4.x`. This skill was written from that
-branch at commit `81f35ea` (2026-08-24).
+**Provenance:** written from all 98 files of `docs/` on `livewire/livewire@4.x`,
+commit `81f35ea`. Audited clean **2026-08-26**. A few signatures the docs omit
+(`#[Authorize]`, `#[Transition]`, `renderIsland()`, `streamIsland()`) were read
+from the package source and are labelled where they appear.
+
+**Re-verify against the current release at any time:**
+
+```bash
+bash bin/refresh.sh          # read-only; re-clones the docs and re-audits
+```
+
+It reports anything now documented that this skill does not mention, and prints
+a fresh provenance line. It never edits the skill. When Livewire is newer than
+the date above, run it — or ask Laravel Boost's `search-docs` (see below).
+
+---
+
+## Preflight — two checks before you write anything
+
+**1. Which Livewire version?** This skill documents **v4**. On v3 much of it is
+wrong; on v2 nearly all of it is.
+
+```bash
+php -r '$l=json_decode(file_get_contents("composer.lock"),true);
+foreach($l["packages"] as $p) if($p["name"]==="livewire/livewire") echo $p["version"],PHP_EOL;'
+```
+
+Quick tells: `app/Http/Livewire/` means **v2**. `app/Livewire/` with
+`Route::get('/x', Foo::class)` and no `⚡` means **v3**. `Route::livewire(` or
+`⚡` filenames mean **v4**. On anything but v4, read `references/version-guide.md`
+first — it maps every difference and lists what does not exist yet.
+
+**2. What are this project's conventions?** See directly below. They outrank
+every default in this skill.
 
 ---
 
@@ -87,16 +118,37 @@ absorb Volt's *functional* API (`state()`, `computed()`, `$increment = fn () =>`
 
 Reference: `references/volt.md`.
 
-### Name collision with Laravel Boost
+### Working alongside Laravel Boost
 
-Laravel Boost ships **its own skill also called `livewire-development`**, plus a
-`volt-development` skill, installed into `.ai/skills/` when a project has
-`livewire/livewire` in `composer.json`. Boost documents that a project-level
-skill of the same name **overrides** its built-in one.
+Boost ships **its own skill with the identical name**, `livewire-development`,
+installed into `.ai/skills/` when a project has `livewire/livewire`. Boost
+documents that a project-level skill of that name **overrides** its built-in one,
+so both may be present.
 
-So in a Boost project both may exist. If Livewire guidance ever looks
-contradictory, check which one is loaded — `.ai/skills/livewire-development/`
-(Boost, project-level) or this skill (global).
+They are complementary, not rivals — use both:
+
+```bash
+ls .ai/skills/livewire-development/ 2>/dev/null && echo "Boost skill present"
+grep -q 'laravel/boost' composer.json && echo "Boost installed"
+```
+
+**If Boost is installed, use its `search-docs` MCP tool for anything this skill
+does not cover, or anything you need to confirm against the current release.**
+It queries a live, version-aware documentation index — it will be right about a
+release newer than this skill's snapshot, and it beats guessing.
+
+| Question | Best source |
+|---|---|
+| "What changed in the version released last week?" | Boost `search-docs` |
+| "Which format does *this* project use?" | Boost — its skill reads your config |
+| "Every modifier of `wire:target`" | This skill — `references/directives.md` |
+| "Why did my morph put state on the wrong element?" | This skill — `references/troubleshooting.md` |
+| "Full `#[Authorize]` argument resolution" | This skill — `references/attributes.md` |
+| "A complete searchable, paginated table" | This skill — `references/recipes.md` |
+
+If the two ever contradict each other on a fact, **prefer the live docs** —
+via `search-docs`, or livewire.laravel.com — and treat this skill's snapshot
+date as the tiebreaker.
 
 ---
 
@@ -271,6 +323,57 @@ prompted first.
 
 ---
 
+## What do you want to do?
+
+| Task | Go to |
+|---|---|
+| Build a CRUD form, search table, modal, wizard, upload, infinite scroll | **`references/recipes.md`** — complete working components |
+| Something is broken | **`references/troubleshooting.md`** — symptom → cause → fix |
+| The project is on v3 or v2 | **`references/version-guide.md`** |
+| Look up a `wire:` directive or modifier | `references/directives.md` |
+| Look up a PHP attribute | `references/attributes.md` |
+| Create/organize components, pages, layouts, nesting, slots | `references/components.md` |
+| Bind data, write actions, handle events, lifecycle hooks, Echo | `references/properties-actions.md` |
+| Forms, validation, uploads, pagination, URL/session state | `references/forms-validation.md` |
+| Make something faster, or load later | `references/islands-performance.md` |
+| Write JavaScript, `$wire`, interceptors, scoped styles | `references/javascript.md` |
+| Use Alpine with Livewire | `references/alpine.md` (language itself: `alpinejs-development` skill) |
+| Write tests | `references/testing.md` |
+| Understand hydration, morphing, synthesizers, middleware, CSP | `references/advanced.md` |
+| Upgrade v3 → v4 | `references/v3-to-v4.md` |
+| Volt | `references/volt.md` |
+| Config, redirects, Blade directives, installation | `references/reference.md` |
+
+## Typical use cases
+
+Concrete things this skill is for. Each names the file that answers it.
+
+1. **"Build me a post editor with validation."** → `recipes.md` #1–2. Real-time
+   validation on blur, `data-loading` button state, authorization in both
+   `mount()` and the action.
+2. **"Add search, filters, sorting and pagination to this table."** →
+   `recipes.md` #3. The four things that make it correct: a computed property,
+   `resetPage()` on filter change, `wire:key` per row, debounced search.
+3. **"Why does my list show the wrong rows after sorting?"** →
+   `troubleshooting.md`. Almost always a missing or colliding `wire:key`.
+4. **"This page is slow to load."** → `islands-performance.md`. Islands, `lazy`,
+   `defer`, and bundling, with the rule for choosing between them.
+5. **"Make this feel instant."** → `recipes.md` #8. Optimistic UI with
+   `wire:text` and `#[Renderless]`.
+6. **"Upgrade this app from Livewire 3."** → `v3-to-v4.md`, then the checklist
+   at its end.
+7. **"Is this component secure?"** → the Security section below, then
+   `attributes.md` → `#[Locked]` and `#[Authorize]`.
+8. **"Add real-time updates."** → `recipes.md` #10 and
+   `properties-actions.md` → Laravel Echo. Watch the leading dot on
+   `broadcastAs()` names.
+9. **"Write tests for this component."** → `testing.md` and `recipes.md` #12.
+   Test authorization, not that a component renders.
+10. **"Add a modal / dropdown / drag-and-drop."** → `recipes.md` #4, and
+    `alpine.md` for which half belongs to Alpine.
+
+---
+
 ## Reference files
 
 Load the file that matches the task. Do not guess an API — these are transcribed
@@ -291,6 +394,9 @@ from the 4.x docs.
 | `references/reference.md` | Redirects, every Blade directive, the full config file, advanced installation, troubleshooting |
 | `references/volt.md` | The Volt functional API in full, and how to migrate class-based Volt to core |
 | `references/v3-to-v4.md` | Complete upgrade guide and deprecations |
+| `references/version-guide.md` | Detecting the installed version, and every v3 difference — plus what simply does not exist before v4 |
+| `references/recipes.md` | Twelve complete components: CRUD, search/filter/sort/paginate, modal, upload, infinite scroll, wizard, optimistic UI, dependent selects, Echo, form objects, tests |
+| `references/troubleshooting.md` | Symptom → cause → fix table, the three most common bugs in depth, debugging tools, reading the network tab |
 
 ---
 
