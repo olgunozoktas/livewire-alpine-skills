@@ -22,6 +22,8 @@ const RULES = [
     'identity-named-public-property' => 'A public property named for a protected field is published into wire:snapshot and is writable by the browser.',
     'public-page-props' => 'A page-prop property must be private, or every page publishes its whole prop bag.',
     'unauthorized-mutator' => 'A public method that looks like it mutates a record, with no authorize/policy/gate/can call. Every public method is callable from the browser.',
+    'url-writable-identifier' => 'A #[Url] property with an identifier name and no #[Locked]. Any link can then set the record that this component reads.',
+    'untyped-public-property' => 'A public property with no type. The browser can send an array where the code expects a string.',
 ];
 
 /** Field names that are somebody's identity, whatever the type says. */
@@ -33,6 +35,18 @@ const PROTECTED_NAMES = [
 
 /** Types that publish a class name and a primary key. */
 const MODEL_HINTS = ['Model', 'Collection', 'EloquentCollection'];
+
+/**
+ * Property names that select a record.
+ *
+ * The rule is deliberately narrow. `#[Url]` is a correct feature for a tab, a
+ * filter or a sort, and a rule that reports every `#[Url]` property reports
+ * mostly correct code. A person switches off a check like that.
+ *
+ * An identifier is different. `#[Url] public $postId` lets any link choose the
+ * record that the component reads, and the value returns in the snapshot.
+ */
+const IDENTIFIER_NAMES = ['id', 'uuid', 'key', 'recordId', 'modelId', 'postId', 'userId', 'accountId', 'teamId', 'orderId', 'paymentId'];
 
 function findings(string $file, string $source): array
 {
@@ -67,6 +81,20 @@ function findings(string $file, string $source): array
             if (! $locked && preg_match('/^(pageProps|props|payload|data)$/', $name) === 1
                 && preg_match('/\barray\b/i', $type) === 1) {
                 $out[] = [$file, $number, 'public-page-props', trim($line)];
+            }
+
+            // A `#[Url]` attribute can sit on the line above, or two lines above
+            // when `#[Validate]` sits between them.
+            $above = ($i > 0 ? $lines[$i - 1] : '').($i > 1 ? $lines[$i - 2] : '');
+
+            if (! $locked && str_contains($above, '#[Url]')
+                && in_array($name, IDENTIFIER_NAMES, true)) {
+                $out[] = [$file, $number, 'url-writable-identifier', trim($line)];
+            }
+
+            // `public $foo;` with no type. The client decides what arrives.
+            if ($type === '' && preg_match('/^\s*public\s+\$/', $line) === 1) {
+                $out[] = [$file, $number, 'untyped-public-property', trim($line)];
             }
         }
 
@@ -111,7 +139,24 @@ function scanPath(string $root): array
             continue;
         }
 
-        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        // SKIP `vendor` AND `node_modules` AT ANY DEPTH.
+        //
+        // `packages/*/vendor/livewire/livewire` holds Livewire's own test
+        // fixtures, and those fixtures contain the exact shapes this scanner
+        // looks for — on purpose, because they test them. MEASURED: the
+        // untyped-property rule reported 49 findings on a real application and
+        // most of them came from that directory. A person reads a report like
+        // that one time.
+        $filter = new RecursiveCallbackFilterIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            static function (SplFileInfo $entry): bool {
+                $name = $entry->getFilename();
+
+                return ! $entry->isDir() || ! in_array($name, ['vendor', 'node_modules', '.git'], true);
+            },
+        );
+
+        $it = new RecursiveIteratorIterator($filter);
 
         foreach ($it as $f) {
             if (! $f instanceof SplFileInfo || ! in_array($f->getExtension(), ['php'], true)) {
@@ -156,6 +201,15 @@ function selfTest(): int
         ['unauthorized-mutator', false, $component("    public function updatedTarget(): void\n    {\n        \$this->quote();\n    }")],
         // A project's own guard helper counts as authorization.
         ['unauthorized-mutator', false, $component("    public function deleteMessage(int \$id): void\n    {\n        \$this->ensureAccess();\n        Message::findOrFail(\$id)->delete();\n    }")],
+        // A #[Url] identifier lets any link choose the record.
+        ['url-writable-identifier', true, $component("    #[Url]\n    public string \$postId = '';")],
+        // A #[Url] filter is a correct feature and must stay silent.
+        ['url-writable-identifier', false, $component("    #[Url]\n    public string \$tab = 'overview';")],
+        // A locked identifier is the fix, so it must stay silent.
+        ['url-writable-identifier', false, $component("    #[Url]\n    #[Locked]\n    public string \$postId = '';")],
+        // An untyped public property accepts whatever the client sends.
+        ['untyped-public-property', true, $component('    public $filters;')],
+        ['untyped-public-property', false, $component('    public array $filters = [];')],
         // Not a Livewire component at all: silent.
         ['model-on-public-property', false, $plain('    public Model $user;')],
         ['unauthorized-mutator', false, $plain("    public function deletePost(\$id)\n    {\n        Post::find(\$id)->delete();\n    }")],

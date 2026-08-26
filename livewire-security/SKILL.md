@@ -234,19 +234,48 @@ you make a conclusion. Do this before you report a defect in another branch.
 
 ---
 
-## The scanner
+## The two tools
 
 ```bash
-php bin/scan.php <path-to-app>      # report only. Exit code 1 for a finding
-php bin/scan.php --self-test        # prove that every rule fires
+php bin/scan.php <path-to-app>          # 6 checks. Exit code is the finding count
+php bin/scan.php --self-test            # prove that every rule fires
+
+php bin/verify-facts.php <path-to-app>  # are the statements above still true?
+php bin/verify-facts.php --help         # (any bad path prints the usage)
 ```
 
-The scanner reads source text. It needs no bootstrap, no database and no
-autoloader. It therefore runs in CI, in a hook, and in a checkout without
+Both tools read source text. They need no bootstrap, no database and no
+autoloader. They therefore run in CI, in a hook, and in a checkout without
 installed dependencies. A reflection tool cannot run in those places.
 
-It reports four things. A public property with a model type or a collection type.
+### `scan.php`
+
+It reports six things. A public property with a model type or a collection type.
 A public property with a protected field name. A page-property bag that is not
-private. A public method with a mutator name and no authorization call.
+private. A public method with a mutator name and no authorization call. A
+`#[Url]` property with an identifier name and no `#[Locked]`. A public property
+with no type.
+
+The scanner skips `vendor` and `node_modules` at any depth. Livewire's own test
+fixtures contain the shapes this scanner looks for, on purpose, and a report full
+of them is a report that nobody reads a second time.
 
 The scanner is a first check. The canary sweep is the boundary.
+
+### `verify-facts.php`
+
+This skill states facts about Livewire internals. It names an exception
+namespace. It names the contents of a middleware list. It names the shape that a
+model takes in a snapshot.
+
+A fact can stop being true. A new release can move a class or change a list. The
+skill then gives confident wrong advice, and no person notices.
+
+This tool applies the rule above to the skill. It reads the installed
+`vendor/livewire/livewire` and fails when a statement no longer holds. Run it
+after a Livewire upgrade.
+
+The most important check is the one for the persistent middleware list. The skill
+tells a reader that a permission check does **not** run again on an update
+request. A future release could add that middleware. The advice would then be
+wrong in the dangerous direction.

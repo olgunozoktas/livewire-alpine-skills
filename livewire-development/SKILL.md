@@ -358,6 +358,17 @@ parameter. Both are fully controllable from the browser DevTools.
 `#[Locked]` stops *client* tampering only. Server code can still assign a bad
 value to a locked property.
 
+**For anything more than these five rules, use the `livewire-security` skill.**
+It covers the part this list does not: which middleware runs again on the update
+endpoint and which does not, how to build detection that finds a leak whatever
+produced it, and the traps that make a security check pass while it is broken.
+Read it before a component goes on a public route, and during a security review.
+
+```bash
+php ../livewire-security/bin/scan.php <path-to-app>          # 4 static checks
+php ../livewire-security/bin/verify-facts.php <path-to-app>  # are the framework facts still true?
+```
+
 ---
 
 ## Artisan commands

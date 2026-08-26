@@ -46,8 +46,9 @@ does not check that permission again on a later action.
 
 ```
 livewire-security/
-├── SKILL.md          the six rules, the detection design, the traps
-└── bin/scan.php      a static scanner with a self-test
+├── SKILL.md                the six rules, the detection design, the traps
+├── bin/scan.php            6 static checks, with a self-test
+└── bin/verify-facts.php    checks that the skill's own facts are still true
 ```
 
 ---
@@ -63,9 +64,11 @@ The scanner reads source text. It needs no bootstrap, no database and no
 autoloader. It therefore runs in CI, in a hook, and in a checkout without
 installed dependencies. A reflection tool cannot run in those places.
 
-It reports four things. A public property with a model type or a collection type.
+It reports six things. A public property with a model type or a collection type.
 A public property with a protected field name. A page-property bag that is not
-private. A public method with a mutator name and no authorization call.
+private. A public method with a mutator name and no authorization call. A
+`#[Url]` property with an identifier name and no `#[Locked]`. A public property
+with no type.
 
 **The self-test found two real defects in the scanner.** On the first run every
 rule reported "expected to fire". The test fixtures were single lines, and the
@@ -75,7 +78,33 @@ matched the `update` mutator prefix. An application guard method,
 `$this->ensureAccess()`, was not in the authorization pattern. The scanner now
 handles both cases, and the self-test covers both.
 
+The scanner skips `vendor` and `node_modules` at any depth. Livewire's own test
+fixtures contain the shapes this scanner looks for, on purpose. Before that fix,
+one rule reported 49 findings on a real application, and most came from that
+directory.
+
 The exit code is the number of findings. The scanner can therefore gate a build.
+
+---
+
+## The facts check their own age
+
+```bash
+php bin/verify-facts.php <path-to-a-laravel-app>
+```
+
+This skill states facts about Livewire internals. A fact can stop being true. A
+new release can move a class or change a list. The skill then gives confident
+wrong advice, and no person notices.
+
+This tool applies the skill's own rule to the skill. It reads the installed
+`vendor/livewire/livewire` and fails when a statement no longer holds. It checks
+11 statements. Run it after a Livewire upgrade.
+
+The tool was proved by injection. A copy of `vendor` received the Spatie
+permission middleware in the persistent list, and the check failed. The same copy
+received the locked-property exception in `Livewire\Exceptions\`, and that check
+failed as well.
 
 ---
 

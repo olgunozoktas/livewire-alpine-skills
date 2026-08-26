@@ -10,9 +10,9 @@ the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| [`livewire-development`](livewire-development/) | 10,592 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
+| [`livewire-development`](livewire-development/) | 10,603 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
 | [`alpinejs-development`](alpinejs-development/) | 3,132 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
-| [`livewire-security`](livewire-security/) | 448 | What a component publishes, what a browser can change, and how to detect a leak |
+| [`livewire-security`](livewire-security/) | 675 | What a component publishes, what a browser can change, and how to detect a leak |
 
 Each skill has its own README with the full file map. Line counts are the
 skill content — `README.md` excluded, so they do not move when this page does.
@@ -131,7 +131,7 @@ Measured against `laravel/boost`'s `.ai/livewire/4/skill/livewire-development`.
 
 | | Laravel Boost | These skills |
 |---|---|---|
-| **Livewire skill size** | 203 lines, 2 files | **10,592 lines, 48 files** |
+| **Livewire skill size** | 203 lines, 2 files | **10,603 lines, 48 files** |
 | **Alpine skill** | none | **3,132 lines** |
 | Complete worked recipes | 1 (a counter) | **12, all executed** |
 | Troubleshooting | 5 bullets | **30-row triage + deep dives** |
@@ -210,7 +210,8 @@ Livewire is newer than this skill's verification.
 | File | Covers |
 |---|---|
 | `SKILL.md` | Why `public` means published AND writable, the six rules, why an allow-list is not a boundary in Livewire, how to build a canary sweep that does not lie, and the traps that cost real time |
-| `bin/scan.php` | 4 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator. No bootstrap, no database, no autoloader |
+| `bin/scan.php` | 6 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator, a `#[Url]` identifier without `#[Locked]`, an untyped public property. No bootstrap, no database, no autoloader |
+| `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the snapshot shape. 11 statements. Run it after an upgrade |
 
 ### `alpinejs-development`
 
