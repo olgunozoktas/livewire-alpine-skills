@@ -9,10 +9,16 @@ the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| [`livewire-development`](livewire-development/) | ~9,200 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
-| [`alpinejs-development`](alpinejs-development/) | ~2,900 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
+| [`livewire-development`](livewire-development/) | 10,539 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
+| [`alpinejs-development`](alpinejs-development/) | 3,132 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
 
-Each skill has its own README with the full file map.
+Each skill has its own README with the full file map. Line counts are the
+skill content — `README.md` excluded, so they do not move when this page does.
+
+**Invoke `livewire-development` and you get both.** Livewire bundles Alpine, so
+real work touches both halves — `bash bin/stack.sh` finds the Alpine skill and
+prints both file maps. They stay two skills because Alpine also runs with Rails,
+Django and Hotwire.
 
 ---
 
@@ -117,8 +123,8 @@ Measured against `laravel/boost`'s `.ai/livewire/4/skill/livewire-development`.
 
 | | Laravel Boost | These skills |
 |---|---|---|
-| **Livewire skill size** | 203 lines, 2 files | **8,980 lines, 48 files** |
-| **Alpine skill** | none | **2,966 lines** |
+| **Livewire skill size** | 203 lines, 2 files | **10,539 lines, 48 files** |
+| **Alpine skill** | none | **3,132 lines** |
 | Complete worked recipes | 1 (a counter) | **12, all executed** |
 | Troubleshooting | 5 bullets | **30-row triage + deep dives** |
 | Per-directive coverage | a 5-row table | **every directive, every modifier** |
@@ -210,6 +216,7 @@ Static text cannot know what your project does. These scripts read it:
 
 ```bash
 bash bin/detect.sh                  # what does THIS project actually do?
+bash bin/stack.sh                   # load BOTH halves — Livewire + Alpine
 bash bin/scaffold.sh post.create    # create in the project's own conventions
 python3 bin/review.py <file>        # v3-isms, security holes, known traps
 bash bin/eval.sh --compare          # score code quality objectively
@@ -218,14 +225,15 @@ bash bin/eval.sh --compare          # score code quality objectively
 | Script | Does |
 |---|---|
 | `detect.sh` | Livewire version, the component format already on disk, emoji setting, namespaces, routing style, Boost, duplicated Alpine. Read-only |
+| `stack.sh` | Finds the paired Alpine skill in any layout, symlinks followed, and prints both file maps plus which half answers which question |
 | `scaffold.sh` | Creates a component in **your** conventions — and refuses a v4-only flag on a v3 project instead of emitting broken output |
-| `review.py` | 22 checks: v3-isms, unauthorized writes, `#[Async]` mutating state, `@foreach` without `wire:key`, **multi-root templates** (nesting-aware, not a regex), unquoted Blade in JS, duplicated Alpine, invalid SKILL.md frontmatter. Exit code = error count, so it gates |
+| `review.py` | **21 rules**, 53 self-test cases: v3-isms, unauthorized writes, `#[Async]` mutating state, `@foreach` without `wire:key`, **multi-root templates** (nesting-aware, not a regex), unquoted Blade in JS, duplicated Alpine, invalid SKILL.md frontmatter. Exit code = error count, so it gates. Refuses a `.md` file — documentation holds many components, so whole-file rules would compare across them |
 | `verify-recipes.sh` | Runs every recipe against a real Livewire install |
 | `refresh.sh` | Re-audits against the current documentation |
 | `eval.sh` | Scores a directory. `--compare` for baseline-vs-skill |
 
-**Alpine has its own reviewer too** — `alpinejs-development/bin/review.py`, 30
-self-tested checks for v2-isms and the quiet traps (`x-if` off a `<template>`,
+**Alpine has its own reviewer too** — `alpinejs-development/bin/review.py`, 14
+rules proven by 30 self-test cases, for v2-isms and the quiet traps (`x-if` off a `<template>`,
 `x-cloak` with no CSS, a `$watch` that writes to what it watches).
 
 **Both are calibrated in two directions.** Livewire: 9 errors on deliberately

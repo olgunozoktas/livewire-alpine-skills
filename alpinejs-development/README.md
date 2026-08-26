@@ -31,8 +31,8 @@ element** in v3.
 
 ```
 SKILL.md                  always loaded — mental model, the three rules, Livewire pairing
-references/               5 files, ~2,650 lines
-bin/review.py             30 self-tested checks
+references/               5 files, 2,646 lines
+bin/review.py             14 rules, 30 self-test cases
 ```
 
 | File | Covers |
@@ -49,13 +49,13 @@ bin/review.py             30 self-tested checks
 
 ```bash
 python3 bin/review.py <file>...      # v2-isms and documented traps
-python3 bin/review.py --self-test    # prove all 30 checks still fire
+python3 bin/review.py --self-test    # 30 cases prove all 14 rules still fire
 python3 bin/review.py --json <file>  # machine-readable
 ```
 
 Exit code is the error count, so it gates.
 
-**14 checks:** `x-spread`, `x-show.transition`, `x-if.transition`, `.away`,
+**14 rules** — 12 pattern rules plus two that read the whole file: `x-spread`, `x-show.transition`, `x-if.transition`, `.away`,
 `deferLoadingAlpine`, bound `x-ref`, `x-if`/`x-for` not on a `<template>`,
 `x-for` without `:key`, `x-html` on untrusted content, `$persist` with an arrow
 function inside `Alpine.data()`, a `$watch` callback that writes to the object it

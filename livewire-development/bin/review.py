@@ -14,6 +14,7 @@ a broken one.
 """
 import re
 import sys
+import io
 import json
 import os
 
@@ -357,6 +358,34 @@ def self_test() -> int:
     if strip_comments("// public function reset() {}").strip():
         print("  FAIL strip_comments: line comment not blanked"); bad += 1
 
+    # The .md refusal, exercised through main() — the guard lives there, so a
+    # rule-level test would not reach it. A markdown file holds many components,
+    # and reviewing it as one source file invents cross-component findings.
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        md = os.path.join(td, "recipes.md")
+        with open(md, "w", encoding="utf-8") as fh:
+            fh.write("new class extends Component {};\n?>\n<div>a</div>\n<div>b</div>\n")
+        argv, out = sys.argv, sys.stdout
+        try:
+            sys.stdout = io.StringIO()          # main() prints; the test only wants its exit code
+            err = sys.stderr; sys.stderr = io.StringIO()
+            sys.argv = ["review.py", md]
+            if main() != 0:
+                print("  FAIL md-guard: did not refuse a .md file"); bad += 1
+            sys.argv = ["review.py", "--force-md", md]
+            if main() == 0:
+                print("  FAIL md-guard: --force-md did not review the file"); bad += 1
+            php = os.path.join(td, "c.blade.php")
+            with open(php, "w", encoding="utf-8") as fh:
+                fh.write("new class extends Component {};\n?>\n<div>a</div>\n<div>b</div>\n")
+            sys.argv = ["review.py", php]
+            if main() == 0:
+                print("  FAIL md-guard: refused a real component file"); bad += 1
+        finally:
+            sys.argv, sys.stdout = argv, out
+            sys.stderr = err
+
     root_cases = [
         ("two siblings", "new class extends Component {};\n?>\n<div>a</div>\n<div>b</div>", True),
         ("one root, nested", "new class extends Component {};\n?>\n<div><span>a</span><span>b</span></div>", False),
@@ -374,7 +403,7 @@ def self_test() -> int:
             print(f"  FAIL multi-root ({label}): expected {'a finding' if should_fire else 'silence'}")
             bad += 1
 
-    total = len(RULES) * 2 + 3 + len(root_cases)
+    total = len(RULES) * 2 + 3 + len(root_cases) + 3   # +3: the .md guard, both ways, plus a real file
     print(f"  {total - bad}/{total} checks passed")
     return bad
 
@@ -458,6 +487,25 @@ def main() -> int:
     for p in paths:
         if not os.path.isfile(p):
             print(f"not a file: {p}", file=sys.stderr)
+            continue
+        # A .md file holds MANY components. Reviewing it as one source file makes
+        # every whole-file rule compare across component boundaries — multi-root
+        # counts roots from twelve different templates and reports a defect that
+        # is not there. A checker that fires on correct input gets switched off,
+        # so refuse the input instead of producing the false finding.
+        if p.lower().endswith((".md", ".markdown")) and "--force-md" not in args:
+            print(f"REFUSED {p}", file=sys.stderr)
+            print("        This is documentation, not a component. It holds several",
+                  file=sys.stderr)
+            print("        components, so whole-file rules would compare across them.",
+                  file=sys.stderr)
+            print("        Extract them first, then review the real files:",
+                  file=sys.stderr)
+            print("          python3 tests/extract-recipes.py <outdir>", file=sys.stderr)
+            print("          python3 bin/review.py <outdir>/**/*.php", file=sys.stderr)
+            print("        --force-md overrides, and its findings are not trustworthy.",
+                  file=sys.stderr)
+            print("        (SKILL.md YAML is checked by --frontmatter.)", file=sys.stderr)
             continue
         with open(p, encoding="utf-8", errors="replace") as fh:
             all_findings += review(fh.read(), p)

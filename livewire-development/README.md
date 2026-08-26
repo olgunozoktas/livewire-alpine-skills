@@ -25,8 +25,8 @@ moved into core.
 
 ```
 SKILL.md                    always loaded — preflight, corrections, mental model, routing
-references/                 16 files, ~7,000 lines
-bin/                        six scripts the agent RUNS
+references/                 16 files, 8,315 lines
+bin/                        seven scripts the agent RUNS
 tests/                      the verification harness and eval baseline
 ```
 
@@ -55,12 +55,20 @@ tests/                      the verification harness and eval baseline
 
 ```bash
 bash bin/detect.sh              # what does THIS project actually do?
+bash bin/stack.sh               # load BOTH halves — this skill + Alpine
 bash bin/scaffold.sh post.create   # create in the project's own conventions
-python3 bin/review.py <file>    # 22 checks; exit code gates
+python3 bin/review.py <file>    # 21 rules; exit code gates
 bash bin/verify-recipes.sh      # run every recipe against a real install
 bash bin/refresh.sh             # re-audit against current documentation
 bash bin/eval.sh --compare      # score code quality objectively
 ```
+
+**`stack.sh`** is what makes one invocation enough. Livewire bundles Alpine, so
+real work touches both, but they are two skills. This locates the paired
+`alpinejs-development` skill — in any layout, symlinks followed — and prints both
+file maps with a table of which half answers which question. When Alpine is not
+installed it says so and falls back to `references/alpine.md`, which covers the
+integration but not the language.
 
 **`detect.sh`** reports the Livewire version, the component format already on
 disk, the emoji setting, namespaces, routing style, whether Boost is installed,
@@ -71,10 +79,20 @@ Livewire. Read-only. **Run it first** — its answers outrank every default here
 and **refuses** `--sfc`/`--mfc`/namespaces on a v3 project instead of emitting
 output that cannot work there.
 
-**`review.py`** flags v3-isms, an unauthorized write, an `#[Async]` action
-mutating state, a `@foreach` with no `wire:key`, a method that overrides
-`Livewire\Component`, a template with more than one root element (nesting-aware,
-not a regex), an unquoted Blade value inside JavaScript, a duplicated Alpine.
+**`review.py`** carries **21 rules** — 19 in the table plus two that need a
+scanner rather than a pattern. It flags v3-isms, an unauthorized write, an
+`#[Async]` action mutating state, a `@foreach` with no `wire:key`, a method that
+overrides `Livewire\Component`, a template with more than one root element
+(nesting-aware, not a regex), an unquoted Blade value inside JavaScript, a
+duplicated Alpine. `--frontmatter` is a separate mode that validates a
+`SKILL.md`'s own YAML.
+
+It also **refuses a `.md` file**. Documentation holds many components, so a
+whole-file rule compares across component boundaries — pointed at `recipes.md`,
+the multi-root scanner counted roots from twelve different templates and reported
+a defect that was not there. Extract first (`tests/extract-recipes.py`), then
+review the real files. `--force-md` overrides and says its findings are not
+trustworthy.
 
 ---
 
@@ -83,11 +101,12 @@ not a regex), an unquoted Blade value inside JavaScript, a duplicated Alpine.
 | Check | Result |
 |---|---|
 | `bin/verify-recipes.sh` | **14 tests, 54 assertions** — all pass on livewire v4.4.2 |
-| `bin/review.py --self-test` | **50/50** |
+| `bin/review.py --self-test` | **53/53 cases**, covering all 21 rules |
 | `review.py` on the twelve recipes | **0 findings** |
 | `review.py` on deliberately v3-style code | **9 errors** |
 | `bin/refresh.sh` | **CLEAN** — nothing documented is missing |
 | `bin/eval.sh --compare` | v3 habits **46/100**, these recipes **100/100** |
+| `bin/stack.sh` | resolves both skills in **all three layouts** |
 | Independent check (Codex, evidence inline) | **12/12 supported, 0 contradicted** |
 
 The recipes are rendered and exercised with `Livewire::test()` — no browser, no
