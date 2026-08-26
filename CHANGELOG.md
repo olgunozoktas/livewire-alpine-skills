@@ -8,6 +8,56 @@ one line when a newer release exists. It stays silent in every other case.
 
 ---
 
+## 1.2.2 — 2026-08-27
+
+### Added — Octane and persistent workers, in the two skills that already exist
+
+Considered a fifth `livewire-octane` skill and did not build one. The material
+is about one reference file, most of it says "this works correctly", and a fifth
+skill costs description tokens in every agent's listing on every task forever.
+It went where somebody actually hits it instead.
+
+**`livewire-security`, item 12** gains the design story that explains why the
+withdrawn finding looked right:
+
+- livewire/livewire#3987 and laravel/octane#400 were **merged the same day**,
+  2021-10-11. `flushState()` was created *in order that* Octane could call it.
+  Livewire's PR body states the reason the caller lives in the other repo —
+  a feature class registers its own `flush-state` listener and is covered from
+  that moment, with no change on Octane's side.
+- The coverage, measured: **37 static properties, 18 `flush-state` listeners.**
+  The rest need no flush and the file says why each — a synthesizer's `static
+  $key` is a constant, `Checksum::$maxFailures` is configuration, and
+  `ComponentHookRegistry::$components` is assigned `new WeakMap`, which empties
+  itself as components are collected. The `HandleComponents` listener also
+  clears the reflection cache.
+- There are **no open Octane issues on either repository**.
+
+**`livewire-performance`, item 11 — "On a persistent worker"** covers Octane,
+FrankenPHP, Swoole and RoadRunner:
+
+- what Livewire retains and who clears it (Octane, by default — you wire
+  nothing), with the warning not to conclude otherwise from Livewire's source
+  alone;
+- the `#[Computed]` EventBus listener leak that **was** real — every computed
+  attribute registered global `__get`/`__unset` listeners that were never
+  removed, so memory grew until the worker died (livewire#10411, fixed by
+  #10022, backported by #10455). Be current if you run a worker: a leak that
+  only appears under a persistent process is invisible on PHP-FPM;
+- `wire:stream` genuinely does not work on Octane — the single Octane statement
+  in 99 documentation files, and it is accurate;
+- one extra number to watch, and what a slow climb means after that fix.
+
+### Changed
+
+- Both skills' `description` and keywords now name Octane, so the material is
+  reachable without knowing which skill it landed in.
+- `livewire-security/SKILL.md` documents `octane-driver.php` as the tool that
+  settles the question, and `octane-probe.php` as the single-process cousin that
+  shows only half the picture — the half that produced a wrong conclusion once.
+
+---
+
 ## 1.2.1 — 2026-08-26
 
 ### Fixed — the Octane finding in 1.2.0 was WRONG, and is withdrawn

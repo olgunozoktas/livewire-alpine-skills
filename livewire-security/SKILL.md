@@ -1,7 +1,7 @@
 ---
 name: livewire-security
-version: 1.2.1
-description: 'Use for Livewire security work. Covers what a public property publishes, snapshot serialization, #[Locked], the persistent middleware gap, model class and key disclosure, and response-level leak detection. Use it before you ship a component on a public route. Use it before you put a model on a public property. Use it when a security review must prove that its own checks can fail. Keywords: livewire security, wire:snapshot, dehydrate, hydrate, #[Locked], CannotUpdateLockedPropertyException, ModelSynth, morphMap, PersistentMiddleware, livewire update endpoint, public property leak, IDOR, Livewire::test, canary test, PII, primary key disclosure.'
+version: 1.2.2
+description: 'Use for Livewire security work. Covers what a public property publishes, snapshot serialization, #[Locked], the persistent middleware gap, model class and key disclosure, and response-level leak detection. Use it before you ship a component on a public route. Use it before you put a model on a public property. Use it when a security review must prove that its own checks can fail. Keywords: livewire security, wire:snapshot, dehydrate, hydrate, #[Locked], CannotUpdateLockedPropertyException, ModelSynth, morphMap, PersistentMiddleware, livewire update endpoint, public property leak, IDOR, Livewire::test, canary test, PII, primary key disclosure, octane, flushState, static state between requests.'
 ---
 
 # Livewire security
@@ -286,15 +286,17 @@ php bin/scan.php --self-test            # prove that every rule fires
 php bin/verify-facts.php <path-to-app>  # are the statements above still true?
 php bin/verify-facts.php --help         # (any bad path prints the usage)
 
-php artisan tinker --execute="require 'bin/octane-probe.php';"   # see item 12 happen
+php bin/octane-driver.php               # item 12: a REAL Octane worker, the
+                                        # one that settles the question
 ```
 
 The first two read source text. They need no bootstrap, no database and no
 autoloader, so they run in CI, in a hook, and in a checkout without installed
 dependencies. A reflection tool cannot run in those places.
 
-The probe is the exception and needs a booted application, which is why it is
-run through `tinker` rather than called directly.
+The driver is the exception and needs a booted application with `laravel/octane`
+installed. `bin/octane-probe.php` is its single-process cousin, run through
+`tinker`; on its own it shows only half the picture and its header says so.
 
 ### `scan.php`
 
@@ -323,16 +325,17 @@ This tool applies the rule above to the skill. It reads the installed
 `vendor/livewire/livewire` and fails when a statement no longer holds. It checks
 28 statements. Run it after a Livewire upgrade.
 
-### `octane-probe.php`
+### `octane-driver.php` and `octane-probe.php`
 
-It demonstrates the Octane state finding rather than asserting it. In one
-process it sets a static flag, runs `Livewire::test()` and shows the flag
-cleared, then sets it again, runs the production `Livewire::mount()` path and
-shows the flag **still set**.
+The driver boots a **real** Octane worker and handles consecutive requests, which
+is the only thing that settles whether Livewire state leaks between users. It
+does not: Octane flushes it. See item 12.
 
-That contrast is the finding: the testing renderer calls `flushState()` and the
-production path does not. It flushes the state it touched before it exits, and
-writes nothing.
+The probe is the single-process version. It shows that a completed production
+render leaves the static state set while `Livewire::test()` clears it — true,
+and **not** a leak on its own. It exists because that half is genuinely
+surprising, and because reading it alone is exactly how this skill once reached
+a wrong conclusion.
 
 ### Back to `verify-facts.php`
 

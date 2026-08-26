@@ -172,6 +172,71 @@ component stays mounted.
 
 ---
 
+## 11 · On a persistent worker (Octane, FrankenPHP, Swoole, RoadRunner)
+
+A worker serves many requests from one booted process, so the per-request cost
+falls and anything retained between requests becomes a leak instead of garbage.
+Two things follow for Livewire.
+
+### What Livewire retains, and who clears it
+
+Livewire keeps request- and user-scoped data in `static` properties and clears
+them on a `flush-state` event. **Octane triggers that event for you.**
+`Laravel\Octane\Listeners\PrepareLivewireForNextOperation` calls
+`LivewireManager::flushState()` and is registered by default in
+`prepareApplicationForNextOperation()`, beside the Inertia, Scout and Socialite
+listeners.
+
+This is a two-sided design, merged on both sides the same day — Livewire
+#3987 and Octane #400, 2021-10-11. You do not have to wire anything.
+
+`bin/octane-driver.php` in the `livewire-security` skill boots a real worker and
+prints the proof, if you want to see it rather than trust it.
+
+**Do not conclude from Livewire's source alone that this leaks.** Its production
+path genuinely never calls `flushState()`, and that is the intended shape of the
+contract — the caller lives in Octane.
+
+### The one leak that WAS real, and is fixed
+
+Every `#[Computed]` attribute used to register global `__get` and `__unset`
+EventBus listeners when its component booted, and those listeners were never
+removed. They accumulated across requests in a long-running worker and retained
+the attribute, the component, and the evaluated value — so memory grew until the
+worker hit the PHP limit. Large computed results made it faster.
+
+Reported as livewire#10411, fixed by #10022 and backported by #10455.
+
+**If you run a worker, be current.** A memory leak that only appears under a
+persistent process is invisible on PHP-FPM, and the whole class of bug is
+version-sensitive in a way ordinary Livewire bugs are not.
+
+### `wire:stream` does not work on Octane
+
+The only Octane statement in Livewire's 99 documentation files, in
+`wire-stream.md`, and it is accurate. If a component streams, that page cannot
+move to a worker without changing the component.
+
+### Measuring it
+
+The three numbers in `measuring.md` do not change on a worker. Add one:
+
+```php
+// A route you can hit repeatedly on one worker.
+Route::get('/mem', fn () => [
+    'mb'       => round(memory_get_usage(true) / 1048576, 1),
+    'peak_mb'  => round(memory_get_peak_usage(true) / 1048576, 1),
+]);
+```
+
+Hit it fifty times and watch the first number. **A worker that has warmed up
+should be flat.** A slow climb is retention somewhere — and after the fix above,
+the likeliest source is your own code, not Livewire's: a static array you append
+to, a container singleton holding a request, or a package that never learned
+about workers.
+
+---
+
 ## What to do first
 
 In order, because this order finds the biggest cost soonest:

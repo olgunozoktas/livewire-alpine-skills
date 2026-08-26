@@ -432,6 +432,54 @@ one worker booted once, handling consecutive requests:
 
 `bin/octane-driver.php` reproduces that. There is no leak.
 
+### The design is deliberately two-sided, and both halves were merged the same day
+
+This is not Octane compensating for a Livewire oversight. The two were built
+together.
+
+| | |
+|---|---|
+| **livewire/livewire#3987** | *"[Fix] Add flush state and feature listeners to support Octane"* — merged 2021-10-11 |
+| **laravel/octane#400** | *"Add Livewire listener"* — merged 2021-10-11 |
+
+`flushState()` was created **in order that Octane could call it**. Livewire's PR
+says so, and gives the reason the caller lives in the other repo:
+
+> Currently some of Livewire's feature classes are retaining state between
+> requests when using Octane, see #2859, #3492, #3509. This PR adds a method to
+> the `LivewireManager` class called `flushState` that fires an internal
+> Livewire event, that the feature classes can listen to and reset their own
+> state. … **This will allow us to add new features to Livewire without needing
+> to add a corresponding PR to Octane.**
+
+So a feature class registers its own `flush-state` listener and is covered from
+that moment, with no change on Octane's side. `flushState()` having no
+production caller inside Livewire is the intended shape of that contract, not a
+gap in it.
+
+### The coverage, measured
+
+Livewire's source holds **37 static properties**. That number is alarming on
+sight and mostly should not be:
+
+| Kind | Flushed? | Examples |
+|---|---|---|
+| Request- and user-scoped | **Yes — 18 `flush-state` listeners** | `$alreadyRunAssetKeys`, `$atLeastOneMountedComponentHasRedirected`, `$renderStack`, `$pendingChildParams`, `$outersByComponentId`, the streaming response |
+| Keyed by component instance | Not needed — a `WeakMap` | `ComponentHookRegistry::$components`, which is assigned `new WeakMap` in `boot()` and empties itself as components are collected |
+| Constants | Not needed | every synthesizer's `static $key`, `$magicActions`, `CarbonSynth::$types` |
+| Configuration | Not needed | `Checksum::$maxFailures`, `SecurityPolicy::$deniedClasses` |
+
+The `flush-state` listener in `HandleComponents.php:28` also calls
+`Utils::flushReflectionCache()`, so `BaseUtils::$reflectionCache` is covered
+too.
+
+**There are no open Octane issues on either repository.**
+
+### The one thing that genuinely does not work
+
+`wire:stream`. That is the single Octane mention across all 99 documentation
+files, in `wire-stream.md`, and it is accurate.
+
 ### The lesson, which generalises
 
 **"The framework does not do X" is not established by searching that
