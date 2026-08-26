@@ -1,6 +1,6 @@
 ---
 name: livewire-security
-version: 1.2.2
+version: 1.3.0
 description: 'Use for Livewire security work. Covers what a public property publishes, snapshot serialization, #[Locked], the persistent middleware gap, model class and key disclosure, and response-level leak detection. Use it before you ship a component on a public route. Use it before you put a model on a public property. Use it when a security review must prove that its own checks can fail. Keywords: livewire security, wire:snapshot, dehydrate, hydrate, #[Locked], CannotUpdateLockedPropertyException, ModelSynth, morphMap, PersistentMiddleware, livewire update endpoint, public property leak, IDOR, Livewire::test, canary test, PII, primary key disclosure, octane, flushState, static state between requests.'
 ---
 

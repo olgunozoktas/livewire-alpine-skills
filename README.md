@@ -1,7 +1,7 @@
 # Livewire v4 + Alpine.js — Agent Skills
 
-[![Skills](https://img.shields.io/badge/skills-4-0f172a)](#whats-inside)
-[![Self-tests](https://img.shields.io/badge/self--tests-124%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
+[![Skills](https://img.shields.io/badge/skills-5-0f172a)](#whats-inside)
+[![Self-tests](https://img.shields.io/badge/self--tests-150%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
 [![Recipes](https://img.shields.io/badge/recipes-executed%20%C2%B7%2014%20tests%2C%2054%20assertions-2ea44f)](#the-recipes-are-executed-not-just-written)
 [![Livewire](https://img.shields.io/badge/livewire-v4.4.2-fb70a9)](https://livewire.laravel.com)
 [![Alpine.js](https://img.shields.io/badge/alpine.js-v3-77c1d2)](https://alpinejs.dev)
@@ -23,6 +23,7 @@ the `SKILL.md` format.
 | [`alpinejs-reference`](alpinejs-reference/) | **250** | 2,646 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
 | [`livewire-security`](livewire-security/) | **324** | 418 | What a component publishes, what a browser can change, how to detect a leak |
 | [`livewire-performance`](livewire-performance/) | **178** | 328 | What a request costs, how to measure it, and which fix matches which number |
+| [`alpinejs-security`](alpinejs-security/) | **198** | 295 | Why HTML-escaping a value into `x-data` does not protect it, and what is user-controlled once state reaches the browser |
 
 **Only `SKILL.md` enters context when a skill is invoked.** The `references/`
 files are read on demand through a routing table inside it, and `bin/` is
@@ -30,7 +31,7 @@ executed rather than read. So the entry point is 514 lines, not 10,000 — the
 depth is there when a task needs it and costs nothing when it does not.
 
 The always-loaded cost is smaller still: an agent sees only each skill's
-`description`, which is about 220 tokens for the largest of the four.
+`description`, which is about 220 tokens for the largest of the five.
 
 > **Renamed in 1.0.0.** `livewire-development` → **`livewire-reference`**, and
 > `alpinejs-development` → **`alpinejs-reference`**. Laravel Boost ships its own
@@ -120,6 +121,7 @@ cp -R /tmp/lw-skills/livewire-reference  ~/.claude/skills/
 cp -R /tmp/lw-skills/alpinejs-reference  ~/.claude/skills/
 cp -R /tmp/lw-skills/livewire-security   ~/.claude/skills/
 cp -R /tmp/lw-skills/livewire-performance ~/.claude/skills/
+cp -R /tmp/lw-skills/alpinejs-security   ~/.claude/skills/
 ```
 
 Per-project instead of global: copy into `.claude/skills/` in the repo.
@@ -253,6 +255,30 @@ Livewire is newer than this skill's verification.
 | `bin/scan.php` | 7 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator, a `#[Url]` identifier without `#[Locked]`, an untyped public property, a `#[Computed(cache: true)]` with no key. No bootstrap, no database, no autoloader |
 | `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the computed cache keys, the upload defaults. 28 statements. Run it after an upgrade |
 
+### `alpinejs-security`
+
+Alpine ships **no security documentation page**. Across its 56 doc pages,
+security appears six times: a CSP page, and one XSS warning on `x-html`
+repeated twice.
+
+The gap that matters is not `x-html`, which is warned about clearly. It is that
+an Alpine attribute is a **JavaScript** context, so a server template that
+HTML-escapes into one has used the wrong encoder:
+
+```
+attacker display name : '+alert(document.cookie)+'
+after Blade {{ }}     : &#039;+alert(document.cookie)+&#039;
+what getAttribute sees: { name: ''+alert(document.cookie)+'' }
+```
+
+The browser decodes the entity before Alpine reads the attribute. Both the
+attack and the `@js()` fix are verified against a real HTML parser.
+
+`bin/review-security.py` carries 7 rules and stays silent on `@js()`,
+`Js::from()`, `data-*` with `$el.dataset`, and Blade's own `:prop="$var"`
+component bindings — that last one is the false positive that makes a checker
+unusable.
+
 ### `livewire-performance`
 
 | File | Covers |
@@ -366,13 +392,15 @@ Every badge above is a number you can reproduce. There is no CI run behind them.
 ```bash
 php     livewire-security/bin/scan.php          --self-test   # 22 checks
 php     livewire-performance/bin/scan-performance.php --self-test # 13 checks
+python3 alpinejs-security/bin/review-security.py    --self-test # 26 checks
 php     livewire-security/bin/check-update.sh   --self-test   #  6 checks
 python3 livewire-reference/bin/review.py        --self-test   # 53 checks
 python3 alpinejs-reference/bin/review.py        --self-test   # 30 checks
-#                                                              124 total
+#                                                              150 total
 
 # Are the security skill's statements still true of the installed Livewire?
-php livewire-security/bin/verify-facts.php <path-to-a-laravel-app>   # 28 statements
+php     livewire-security/bin/verify-facts.php <laravel-app>    # 28 statements
+python3 alpinejs-security/bin/verify-facts.py <path-to-alpine>   # 11 statements
 
 # The recipe gate. Scaffolds a throwaway Laravel app and runs every recipe.
 bash livewire-reference/bin/verify-recipes.sh                        # 14 tests, 54 assertions

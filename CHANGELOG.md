@@ -1,10 +1,106 @@
 # Changelog
 
-The version in `VERSION` covers all four skills. They are released together,
+The version in `VERSION` covers all five skills. They are released together,
 because a reader who copies one usually copies the others.
 
 `bin/check-update.sh` compares a local copy against this repository and reports
 one line when a newer release exists. It stays silent in every other case.
+
+---
+
+## 1.3.0 — 2026-08-27
+
+### Added — a fifth skill, `alpinejs-security`
+
+Alpine ships **no security documentation page**. Across its 56 doc pages,
+security appears six times: a CSP page, and one XSS warning on `x-html`
+repeated twice. That is a larger gap than Livewire had when `livewire-security`
+was written, and the concerns are genuinely different — Livewire's are
+server-side trust, Alpine's are that nothing client-side is trustworthy.
+
+**The finding that justifies it: HTML-escaping does not protect an Alpine
+attribute.**
+
+```
+1. attacker display name : '+alert(document.cookie)+'
+2. after Blade {{ }}     : &#039;+alert(document.cookie)+&#039;
+3. rendered HTML         : <div x-data="{ name: '&#039;+alert(…)+&#039;' }">
+4. what getAttribute sees: { name: ''+alert(document.cookie)+'' }
+```
+
+The HTML parser decodes the entity before any script reads the attribute.
+Alpine then compiles line 4 with `new AsyncFunction` (`evaluator.js:94-96`),
+the quote closes the string literal, and the call runs at init with no
+interaction.
+
+**This is not a Blade bug.** An HTML encoder was applied to a JavaScript
+context. Measured with a real HTML parser, and the `@js()` fix was measured the
+same way — it emits `\u0027` for the quote, which is a JavaScript escape rather
+than an HTML entity, so the parser leaves it alone. **A fix that was not tested
+would have been worse than none.**
+
+The skill is organised around that: two seams, and Alpine documents only the
+lesser one.
+
+| | Seam A — the VALUE | Seam B — the EXPRESSION |
+|---|---|---|
+| Sink | `innerHTML`, `setAttribute` | `new AsyncFunction` |
+| Encode for | HTML, URL scheme | **JavaScript** |
+| Alpine warns? | yes, on `x-html` | **no** |
+
+Also covered: the document-wide `MutationObserver` (`mutation.js:49,54`) that
+makes any injected `x-*` an execution sink with no `<script>` involved;
+`x-bind` applying no URL-scheme filter; `x-model.number` falling back to the raw
+string while the docs say it will *"force"* a number; `$persist` as plain-text
+`localStorage` that survives logout; and `x-teleport` moving a control out of
+its form.
+
+### Verified SAFE, and recorded so nobody re-investigates
+
+`x-text` (`textContent`), `x-ignore` (sets a flag, inserts nothing),
+`Alpine.morph` (script-inert parse, though `<img onerror>` still fires),
+query-string tracking (blocks `__proto__`/`constructor`/`prototype` explicitly),
+`x-trap` (focus management with `allowOutsideClick: true`, never a boundary),
+and `$wire` (the client is deliberately unprivileged; every gate is server-side).
+
+**`wire:navigate` is safe on origin handling**, and the check that matters runs
+*after* the fetch: a same-origin URL that redirects off-origin is re-checked
+against the final URL and the fetched body is discarded.
+
+### Two agent claims that did NOT survive checking
+
+Both were plausible, well-cited, and wrong. Recording them because the pattern
+repeats.
+
+- **"DOMPurify's defaults leave `x-*` alone."** False. DOMPurify admits an
+  attribute only via a 369-entry allow-list plus `/^data-…/` and `/^aria-…/`
+  (`purify.ts:2284-2299`); `x-init` matches none, so it is stripped by default.
+  The accurate advice is about the sanitiser's **shape** — a deny-list or a
+  hand-rolled regex is the dangerous one, not DOMPurify.
+- **"`x-teleport` can escape a CSP nonce scope."** Not a real mechanism. Nonces
+  validate scripts at parse time and are not scoped by DOM subtree. The
+  form-association break *is* real and is documented in the skill.
+
+### Added — tools
+
+- `bin/review-security.py` — 7 rules, 26 self-tests, calibrated in both
+  directions. It stays silent on `@js()`, `Js::from()`, `data-*` with
+  `$el.dataset`, and on Blade's own `:prop="$var"` component bindings. That last
+  one is the false positive that made an earlier checker unusable, and it is
+  handled by telling PHP apart from JavaScript.
+- `bin/verify-facts.py` — 11 statements checked against a real Alpine checkout,
+  including one that must NOT be true (the CSP build still constructs no
+  function from a string). A checker that only confirms is half a checker.
+
+**The interpolation rule flags a PATTERN, and the tool says so.** Run against a
+real 343-template application it found four hits, all fed by developer-authored
+constants — latent, not exploitable. Reporting those as vulnerabilities would
+have been overstating; the tool's own message now carries the distinction.
+
+### Changed
+
+- Self-tests total 150, up from 124.
+- Fact statements: 28 for Livewire, 11 for Alpine.
 
 ---
 
