@@ -12,7 +12,7 @@ the `SKILL.md` format.
 |---|---|---|
 | [`livewire-development`](livewire-development/) | 10,603 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
 | [`alpinejs-development`](alpinejs-development/) | 3,132 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
-| [`livewire-security`](livewire-security/) | 675 | What a component publishes, what a browser can change, and how to detect a leak |
+| [`livewire-security`](livewire-security/) | 979 | What a component publishes, what a browser can change, and how to detect a leak |
 
 Each skill has its own README with the full file map. Line counts are the
 skill content — `README.md` excluded, so they do not move when this page does.
@@ -210,8 +210,9 @@ Livewire is newer than this skill's verification.
 | File | Covers |
 |---|---|
 | `SKILL.md` | Why `public` means published AND writable, the six rules, why an allow-list is not a boundary in Livewire, how to build a canary sweep that does not lie, and the traps that cost real time |
-| `bin/scan.php` | 6 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator, a `#[Url]` identifier without `#[Locked]`, an untyped public property. No bootstrap, no database, no autoloader |
-| `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the snapshot shape. 11 statements. Run it after an upgrade |
+| `references/attack-surface.md` | The features that carry their own risk — a cached computed property shared by every user, event listeners a browser can call, the upload defaults, `wire:navigate` state, `#[Url]`, and parent access in v4. Each statement names the file that proves it |
+| `bin/scan.php` | 7 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator, a `#[Url]` identifier without `#[Locked]`, an untyped public property, a `#[Computed(cache: true)]` with no key. No bootstrap, no database, no autoloader |
+| `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the computed cache keys, the upload defaults. 16 statements. Run it after an upgrade |
 
 ### `alpinejs-development`
 

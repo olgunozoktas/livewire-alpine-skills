@@ -24,6 +24,7 @@ const RULES = [
     'unauthorized-mutator' => 'A public method that looks like it mutates a record, with no authorize/policy/gate/can call. Every public method is callable from the browser.',
     'url-writable-identifier' => 'A #[Url] property with an identifier name and no #[Locked]. Any link can then set the record that this component reads.',
     'untyped-public-property' => 'A public property with no type. The browser can send an array where the code expects a string.',
+    'computed-cache-without-key' => 'A #[Computed(cache: true)] with no key. Livewire keys it on the component name only, so every user reads the first user\'s value.',
 ];
 
 /** Field names that are somebody's identity, whatever the type says. */
@@ -106,6 +107,18 @@ function findings(string $file, string $source): array
         // The incorrect reports hid the one real finding. A person switches off
         // a check that reports incorrect findings.
         $isLifecycle = preg_match('/^\s*public\s+function\s+(updated|updating|mount|boot|booted|hydrate|dehydrate|rendering|rendered)/i', $line) === 1;
+
+        // `#[Computed(cache: true)]` with no `key:`.
+        //
+        // Livewire keys that cache on the component name and the method name
+        // only. See `generateCachedKey()` in BaseComputed. The key holds no
+        // user, no tenant and no parameter, so the first request writes a value
+        // that every later request reads, for one hour by default.
+        if (str_contains($line, '#[Computed(') && str_contains($line, 'cache:')
+            && preg_match('/cache:\s*true/', $line) === 1
+            && ! str_contains($line, 'key:')) {
+            $out[] = [$file, $number, 'computed-cache-without-key', trim($line)];
+        }
 
         // A public method whose name says it changes a record.
         if (! $isLifecycle && preg_match('/^\s*public\s+function\s+(delete|destroy|remove|update|save|store|approve|reject|refund|publish|unpublish|archive|restore|assign|revoke|impersonate)\w*\s*\(/i', $line, $m) === 1) {
@@ -201,6 +214,14 @@ function selfTest(): int
         ['unauthorized-mutator', false, $component("    public function updatedTarget(): void\n    {\n        \$this->quote();\n    }")],
         // A project's own guard helper counts as authorization.
         ['unauthorized-mutator', false, $component("    public function deleteMessage(int \$id): void\n    {\n        \$this->ensureAccess();\n        Message::findOrFail(\$id)->delete();\n    }")],
+        // A cached computed property with no key is shared by every user.
+        ['computed-cache-without-key', true, $component("    #[Computed(cache: true)]\n    public function invoices() { return auth()->user()->invoices; }")],
+        // An explicit key is the fix, so it must stay silent.
+        ['computed-cache-without-key', false, $component("    #[Computed(cache: true, key: 'invoices.'.auth()->id())]\n    public function invoices() { return auth()->user()->invoices; }")],
+        // A plain computed property is not cached across requests.
+        ['computed-cache-without-key', false, $component("    #[Computed]\n    public function invoices() { return auth()->user()->invoices; }")],
+        // `persist` is keyed on the component instance, so it must stay silent.
+        ['computed-cache-without-key', false, $component("    #[Computed(persist: true)]\n    public function invoices() { return auth()->user()->invoices; }")],
         // A #[Url] identifier lets any link choose the record.
         ['url-writable-identifier', true, $component("    #[Url]\n    public string \$postId = '';")],
         // A #[Url] filter is a correct feature and must stay silent.

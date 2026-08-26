@@ -93,6 +93,26 @@ $checks = [
     checkAbsent($vendor, 'src/Exceptions/CannotUpdateLockedPropertyException.php',
         'The locked-property exception is NOT in Livewire\\Exceptions'),
 
+    // The computed cache keys. `attack-surface.md` tells a reader that
+    // `cache: true` is keyed on the component NAME, and therefore shared by
+    // every user. A release that adds identity to that key would make the
+    // warning wrong, and a release that removes identity from the persisted key
+    // would make a second warning necessary.
+    checkFile($vendor, 'src/Features/SupportComputed/BaseComputed.php', "'lw_computed.'.\$this->component->getName()",
+        'Computed cache: true is still keyed on the component NAME, so it is still shared by every user'),
+    checkFile($vendor, 'src/Features/SupportComputed/BaseComputed.php', "'lw_computed.'.\$this->component->getId()",
+        'Computed persist: true is still keyed on the component INSTANCE id'),
+
+    // An event listener is reachable from the browser through __dispatch.
+    checkFile($vendor, 'src/Features/SupportEvents/SupportEvents.php', "__dispatch",
+        'A browser can still reach an #[On] listener through __dispatch'),
+
+    // The upload defaults.
+    checkFile($vendor, 'src/Features/SupportFileUploads/FileUploadConfiguration.php', "'throttle:60,1'",
+        'The temporary upload route still defaults to a throttle only, with no auth middleware'),
+    checkFile($vendor, 'src/Features/SupportFileUploads/FileUploadConfiguration.php', "'max:12288'",
+        'The temporary upload rules still default to any file type, to 12 MB'),
+
     // RULE 5 — the persistent middleware list, which decides what runs again.
     checkFile($vendor, 'src/Mechanisms/PersistentMiddleware/PersistentMiddleware.php', 'Illuminate\Auth\Middleware\Authenticate::class',
         'Authenticate is persistent, so it runs again on an update request'),

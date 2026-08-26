@@ -130,6 +130,25 @@ this pattern for a page that renders one time.
 
 ---
 
+## The rest of the surface
+
+`references/attack-surface.md` covers the features that carry their own risk. Read
+it before a component handles money, identity or another person's data.
+
+The most serious item is first. **`#[Computed(cache: true)]` is keyed on the
+component name and the method name only.** The key holds no user and no tenant,
+so the first request writes a value that every later request reads, for one hour
+by default. A computed property that reads `auth()` therefore serves one person's
+data to every person. `bin/scan.php` reports this shape.
+
+The file also covers event listeners, which a browser can call directly through
+`__dispatch`. It covers the file-upload defaults, which include a throttle and no
+`auth`, and accept any file type to 12 MB. It covers `wire:navigate`, which keeps
+the JavaScript runtime across a page change. It covers `#[Url]`, and the change to
+parent access in v4.
+
+---
+
 ## Detect a leak in the response, and not at the source
 
 An allow-list looks correct. An allow-list is **not** a boundary in Livewire.
@@ -250,11 +269,11 @@ installed dependencies. A reflection tool cannot run in those places.
 
 ### `scan.php`
 
-It reports six things. A public property with a model type or a collection type.
-A public property with a protected field name. A page-property bag that is not
-private. A public method with a mutator name and no authorization call. A
+It reports seven things. A public property with a model type or a collection
+type. A public property with a protected field name. A page-property bag that is
+not private. A public method with a mutator name and no authorization call. A
 `#[Url]` property with an identifier name and no `#[Locked]`. A public property
-with no type.
+with no type. A `#[Computed(cache: true)]` with no `key`.
 
 The scanner skips `vendor` and `node_modules` at any depth. Livewire's own test
 fixtures contain the shapes this scanner looks for, on purpose, and a report full
@@ -272,8 +291,8 @@ A fact can stop being true. A new release can move a class or change a list. The
 skill then gives confident wrong advice, and no person notices.
 
 This tool applies the rule above to the skill. It reads the installed
-`vendor/livewire/livewire` and fails when a statement no longer holds. Run it
-after a Livewire upgrade.
+`vendor/livewire/livewire` and fails when a statement no longer holds. It checks
+16 statements. Run it after a Livewire upgrade.
 
 The most important check is the one for the persistent middleware list. The skill
 tells a reader that a permission check does **not** run again on an update

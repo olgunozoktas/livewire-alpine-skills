@@ -46,10 +46,27 @@ does not check that permission again on a later action.
 
 ```
 livewire-security/
-├── SKILL.md                the six rules, the detection design, the traps
-├── bin/scan.php            6 static checks, with a self-test
-└── bin/verify-facts.php    checks that the skill's own facts are still true
+├── SKILL.md                            the six rules, the detection design, the traps
+├── references/attack-surface.md        computed caching, event listeners, uploads, navigate, #[Url]
+├── bin/scan.php                        7 static checks, with a self-test
+└── bin/verify-facts.php                checks that the skill's own facts are still true
 ```
+
+### The most serious item in the reference
+
+**`#[Computed(cache: true)]` is keyed on the component name and the method name
+only** (`BaseComputed.php:152`). The key holds no user and no tenant. The first
+request writes a value, and every later request reads it, for one hour by
+default. A computed property that reads `auth()` therefore serves one person's
+data to every person.
+
+`#[Computed(persist: true)]` is different. It is keyed on the component instance
+id (`BaseComputed.php:145`), and `Factory.php:27` makes that id random for each
+instance.
+
+The fix is an explicit key: `#[Computed(cache: true, key: 'invoices.'.auth()->id())]`.
+`bin/scan.php` reports the shape, and `bin/verify-facts.php` fails if a future
+Livewire release changes it.
 
 ---
 
@@ -64,11 +81,11 @@ The scanner reads source text. It needs no bootstrap, no database and no
 autoloader. It therefore runs in CI, in a hook, and in a checkout without
 installed dependencies. A reflection tool cannot run in those places.
 
-It reports six things. A public property with a model type or a collection type.
-A public property with a protected field name. A page-property bag that is not
-private. A public method with a mutator name and no authorization call. A
+It reports seven things. A public property with a model type or a collection
+type. A public property with a protected field name. A page-property bag that is
+not private. A public method with a mutator name and no authorization call. A
 `#[Url]` property with an identifier name and no `#[Locked]`. A public property
-with no type.
+with no type. A `#[Computed(cache: true)]` with no `key`.
 
 **The self-test found two real defects in the scanner.** On the first run every
 rule reported "expected to fire". The test fixtures were single lines, and the
@@ -99,7 +116,7 @@ wrong advice, and no person notices.
 
 This tool applies the skill's own rule to the skill. It reads the installed
 `vendor/livewire/livewire` and fails when a statement no longer holds. It checks
-11 statements. Run it after a Livewire upgrade.
+16 statements. Run it after a Livewire upgrade.
 
 The tool was proved by injection. A copy of `vendor` received the Spatie
 permission middleware in the persistent list, and the check failed. The same copy
