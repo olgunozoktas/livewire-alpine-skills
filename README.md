@@ -1,21 +1,28 @@
 # Livewire v4 + Alpine.js — Agent Skills
 
-Two [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
+Three [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
 assistant **Laravel Livewire v4** and **Alpine.js v3** accurately — with complete
-working recipes, a symptom-to-fix troubleshooting guide, and version detection.
+working recipes, a symptom-to-fix troubleshooting guide, version detection, and
+the security half that Livewire's own defaults make easy to get wrong.
 
 Works with Claude Code, Codex, Cursor, Gemini CLI, and anything else that reads
 the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| [`livewire-development`](livewire-development/) | 10,539 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
+| [`livewire-development`](livewire-development/) | 10,592 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
 | [`alpinejs-development`](alpinejs-development/) | 3,132 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
+| [`livewire-security`](livewire-security/) | 448 | What a component publishes, what a browser can change, and how to detect a leak |
 
 Each skill has its own README with the full file map. Line counts are the
 skill content — `README.md` excluded, so they do not move when this page does.
 
-**Invoke `livewire-development` and you get both.** Livewire bundles Alpine, so
+**Invoke `livewire-development` for the stack.** `livewire-security` is separate
+because it is read at a different moment — before shipping a component on a
+public route, or during a security review — and because most Livewire work does
+not need it.
+
+**Invoke `livewire-development` and you get both halves of the stack.** Livewire bundles Alpine, so
 real work touches both halves — `bash bin/stack.sh` finds the Alpine skill and
 prints both file maps. They stay two skills because Alpine also runs with Rails,
 Django and Hotwire.
@@ -78,6 +85,7 @@ What the skills are actually for. Each names the file that answers it.
 git clone https://github.com/olgunozoktas/livewire-alpine-skills.git /tmp/lw-skills
 cp -R /tmp/lw-skills/livewire-development   ~/.claude/skills/
 cp -R /tmp/lw-skills/alpinejs-development   ~/.claude/skills/
+cp -R /tmp/lw-skills/livewire-security      ~/.claude/skills/
 ```
 
 Per-project instead of global: copy into `.claude/skills/` in the repo.
@@ -123,7 +131,7 @@ Measured against `laravel/boost`'s `.ai/livewire/4/skill/livewire-development`.
 
 | | Laravel Boost | These skills |
 |---|---|---|
-| **Livewire skill size** | 203 lines, 2 files | **10,539 lines, 48 files** |
+| **Livewire skill size** | 203 lines, 2 files | **10,592 lines, 48 files** |
 | **Alpine skill** | none | **3,132 lines** |
 | Complete worked recipes | 1 (a counter) | **12, all executed** |
 | Troubleshooting | 5 bullets | **30-row triage + deep dives** |
@@ -196,6 +204,13 @@ Livewire is newer than this skill's verification.
 | `bin/refresh.sh` | Re-audits the skill against the current docs. Read-only |
 | `bin/eval.sh` | Scores code quality objectively |
 | `tests/` | The verification harness and the eval baseline |
+
+### `livewire-security`
+
+| File | Covers |
+|---|---|
+| `SKILL.md` | Why `public` means published AND writable, the six rules, why an allow-list is not a boundary in Livewire, how to build a canary sweep that does not lie, and the traps that cost real time |
+| `bin/scan.php` | 4 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator. No bootstrap, no database, no autoloader |
 
 ### `alpinejs-development`
 
