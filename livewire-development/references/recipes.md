@@ -11,6 +11,7 @@ components; convert paths and format to match the project (see the top of
 ```php
 <?php // resources/views/components/post/⚡create.blade.php
 
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use App\Models\Post;
@@ -271,6 +272,7 @@ what makes it accessible rather than merely visible.
 ```php
 <?php // resources/views/components/⚡upload-avatar.blade.php
 
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\WithFileUploads;
 use Livewire\Component;
@@ -389,7 +391,11 @@ new class extends Component {
         $this->step = $step;
     }
 
-    public function reset()
+    // NOTE: do NOT name this reset() — that would override
+    // Livewire\Component::reset(), breaking $this->reset('field') everywhere
+    // in this component. Same applies to validate(), fill(), pull(), only(),
+    // all(), dispatch(), redirect(), render(), mount(), js() and stream().
+    public function startOver()
     {
         $this->skipTransition();
 
@@ -409,7 +415,7 @@ new class extends Component {
 
     <button wire:click="goToStep({{ $step - 1 }})" @disabled($step === 1)>Back</button>
     <button wire:click="goToStep({{ $step + 1 }})" @disabled($step === 3)>Next</button>
-    <button wire:click="reset">Start over</button>
+    <button wire:click="startOver">Start over</button>
 </div>
 ```
 
@@ -434,6 +440,7 @@ html:active-view-transition-type(backward) {
 ```php
 <?php // resources/views/components/post/⚡like-button.blade.php
 
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Renderless;
 use Livewire\Component;
 use App\Models\Post;
@@ -589,6 +596,7 @@ new class extends Component {
 
 namespace App\Livewire\Forms;
 
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Form;
 use App\Models\Post;
