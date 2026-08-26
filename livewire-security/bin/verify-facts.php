@@ -50,6 +50,21 @@ function checkAbsent(string $vendor, string $relative, string $claim): array
         : [true, $claim];
 }
 
+/**
+ * Like checkFile, but for a package that may not be installed. An absent
+ * package is reported as SKIP and does not fail the run.
+ *
+ * @return array{0: bool, 1: string}
+ */
+function checkOptionalFile(string $base, string $relative, string $must, string $claim): array
+{
+    if (! is_dir($base)) {
+        return [true, $claim.' — SKIPPED, the package is not installed here'];
+    }
+
+    return checkFile($base, $relative, $must, $claim);
+}
+
 $root = rtrim($argv[1] ?? getcwd(), '/');
 $vendor = $root.'/vendor/livewire/livewire';
 
@@ -139,13 +154,23 @@ $checks = [
     checkFile($vendor, 'src/Mechanisms/PersistentMiddleware/PersistentMiddleware.php', 'Illuminate\Routing\Middleware\SubstituteBindings::class',
         'SubstituteBindings is persistent'),
 
-    // RULE 6 — Octane. flushState is triggered by the TESTING renderers only.
+    // RULE 6 — Octane. Livewire never flushes; OCTANE does it. Both halves
+    // are checked, because the skill's item 12 depends on the second one.
     checkFile($vendor, 'src/Features/SupportTesting/InitialRender.php', 'flushState',
-        'flushState is still called by the TESTING renderer, which is why production never flushes'),
+        'flushState is still called by the TESTING renderer, and not by the production path'),
     checkFile($vendor, 'src/Features/SupportRedirects/SupportRedirects.php', 'atLeastOneMountedComponentHasRedirected',
         'The redirect flag that decides flash clearing is still static state'),
     checkFile($vendor, 'src/Features/SupportScriptsAndAssets/SupportScriptsAndAssets.php', 'alreadyRunAssetKeys',
         'The asset de-duplication key list is still static state'),
+
+    // The half that makes item 12 a NON-finding. If Octane ever drops this
+    // listener, Livewire's static state really would carry between users.
+    checkOptionalFile(
+        $root.'/vendor/laravel/octane',
+        'src/Listeners/PrepareLivewireForNextOperation.php',
+        'flushState',
+        'Octane still flushes Livewire between operations (item 12 is a NON-finding because of this)'
+    ),
 
     // RULE 7 — a write lands BEFORE its validation runs.
     checkFile($vendor, 'src/Features/SupportValidation/SupportValidation.php', 'stopPropagation',

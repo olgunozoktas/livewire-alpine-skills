@@ -1,6 +1,6 @@
 ---
 name: livewire-reference
-version: 1.2.0
+version: 1.2.1
 description: 'Use for all Laravel Livewire work. Covers Livewire v4 components, page routes, wire directives, PHP attributes, forms, validation, uploads, pagination, tables, modals, events, islands, performance, JavaScript, Alpine integration, Volt, Pest tests, upgrades, and debugging. Use it before you create, change, review, test, or optimize a Livewire component. It detects v2, v3, and v4 differences. Livewire v4 defaults differ from v2 and v3. Run bin/stack.sh first to load the paired Alpine skill map. Use Laravel Boost search-docs for facts newer than this snapshot. Keywords: livewire, wire:model, wire:click, wire:submit, wire:navigate, wire:poll, wire:loading, wire:key, wire:island, Livewire\Component, Route::livewire, #[Computed], #[Validate], #[Locked], #[On], #[Url], #[Lazy], #[Async], #[Authorize], $wire, Volt, SFC, form object, hydrate, morph, snapshot, Livewire::test.'
 ---
 

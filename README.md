@@ -251,7 +251,7 @@ Livewire is newer than this skill's verification.
 | `SKILL.md` | Why `public` means published AND writable, the six rules, why an allow-list is not a boundary in Livewire, how to build a canary sweep that does not lie, and the traps that cost real time |
 | `references/attack-surface.md` | The features that carry their own risk — a cached computed property shared by every user, event listeners a browser can call, the upload defaults, `wire:navigate` state, `#[Url]`, and parent access in v4. Each statement names the file that proves it |
 | `bin/scan.php` | 7 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator, a `#[Url]` identifier without `#[Locked]`, an untyped public property, a `#[Computed(cache: true)]` with no key. No bootstrap, no database, no autoloader |
-| `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the computed cache keys, the upload defaults. 27 statements. Run it after an upgrade |
+| `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the computed cache keys, the upload defaults. 28 statements. Run it after an upgrade |
 
 ### `livewire-performance`
 
@@ -372,7 +372,7 @@ python3 alpinejs-reference/bin/review.py        --self-test   # 30 checks
 #                                                              124 total
 
 # Are the security skill's statements still true of the installed Livewire?
-php livewire-security/bin/verify-facts.php <path-to-a-laravel-app>   # 27 statements
+php livewire-security/bin/verify-facts.php <path-to-a-laravel-app>   # 28 statements
 
 # The recipe gate. Scaffolds a throwaway Laravel app and runs every recipe.
 bash livewire-reference/bin/verify-recipes.sh                        # 14 tests, 54 assertions

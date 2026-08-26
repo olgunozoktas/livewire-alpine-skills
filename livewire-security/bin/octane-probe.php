@@ -1,11 +1,17 @@
 <?php
 
 /**
- * Does Livewire's static state survive a completed request inside ONE process?
+ * Livewire's production path never calls flushState(). Octane does it instead.
  *
- * That is the exact condition a Laravel Octane worker creates, and Livewire
- * clears this state only on a `flush-state` event that the production request
- * path never triggers.
+ * This script shows the FIRST half only: inside one process, a completed
+ * production render leaves Livewire's static state set, while the testing
+ * renderer clears it.
+ *
+ * That is NOT a leak, and this script alone must not be read as one. On a real
+ * Octane worker the state IS cleared, by
+ * `Laravel\Octane\Listeners\PrepareLivewireForNextOperation`, which is
+ * registered by default. Run `octane-driver.php` for that half — it drives a
+ * real worker and is the one that settles the question.
  *
  * Run it against any Laravel app with Livewire installed:
  *

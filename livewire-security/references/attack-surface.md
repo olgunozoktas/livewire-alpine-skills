@@ -395,86 +395,56 @@ snapshot, which is the lever if one leaks.
 
 ---
 
-## 12 · On Octane, Livewire's static state is never flushed between requests
+## 12 · Octane state — CHECKED AND SOUND, and the correction is the lesson
 
-**The most serious item in this file after the computed cache, and it is
-undocumented.** Across all 99 documentation files the word "octane" appears
-once, in `wire-stream.md`, saying `wire:stream` does not support it.
+**An earlier version of this file said Livewire leaks static state between
+Octane requests. That was wrong.** It is kept here, corrected, because the way
+it was wrong is worth more than the finding would have been.
 
-Livewire keeps request-scoped and user-scoped data in `static` properties across
-about twenty feature classes. One event resets them —
-`LivewireManager.php:293`:
+The source reading was accurate. Livewire holds request-scoped and user-scoped
+data in `static` properties across about twenty feature classes, clears them
+only on a `flush-state` event, and `LivewireManager::flushState()` is called in
+exactly two places — `SupportTesting/InitialRender.php:37` and
+`SubsequentRender.php:40`, **both testing renderers**. The production path never
+calls it, Livewire registers no Octane listener, and across all 99 files in
+`docs/` the word "octane" appears once, about `wire:stream`.
 
-```php
-function flushState() { trigger('flush-state'); }
-```
+Every one of those statements is true. The conclusion drawn from them was not.
 
-`flushState()` is called in exactly two places, and **both are the testing
-renderers**: `SupportTesting/InitialRender.php:37` and
-`SupportTesting/SubsequentRender.php:40`. The production update path,
-`HandleRequests::handleUpdate()`, never calls it. The package registers no
-Octane listener and no terminating callback. The only Octane mention in the
-source is a comment.
+**Octane flushes Livewire itself.**
+`Laravel\Octane\Listeners\PrepareLivewireForNextOperation` calls
+`LivewireManager::flushState()`, and it is registered **by default** in
+Octane's `prepareApplicationForNextOperation()`, beside the Inertia, Scout and
+Socialite listeners. The published `config/octane.php` pulls it in with a spread
+— `...Octane::prepareApplicationForNextOperation()` — so an operator does not
+re-list it and cannot drop it by editing around it.
 
-Under PHP-FPM this costs nothing, because the process dies. **Under Laravel
-Octane the worker is reused**, so the state survives into the next request and
-the next user.
-
-Two consequences, each traced to its property:
-
-- **A page loses its JavaScript.** `SupportScriptsAndAssets.php:11-17` keeps
-  `$alreadyRunAssetKeys`, which records the `@assets` and `@script` blocks
-  already emitted so each is injected once. It is cleared only on
-  `flush-state`. On a later request in the same worker the block reads as
-  already run, and the required asset is **omitted from a different user's
-  page**.
-- **Flash data stops being cleared.** `SupportRedirects.php:15` holds
-  `$atLeastOneMountedComponentHasRedirected`, and `:20-24` uses it on every
-  response to decide whether to forget the flash bag. Once any request in that
-  worker redirects, the flag stays true, and later requests skip the clearing —
-  so a flash message persists into another request.
-
-`$renderStack` and `$componentStack` (`HandleComponents.php:21-22`) are popped
-with `tap()` rather than `try`/`finally`, so an exception mid-render leaves a
-stale entry for the next request.
-
-**No crafted payload is needed.** One user triggers a redirect or an assets
-block; the next user routed to that worker gets the consequence.
-
-**The fix, until Livewire wires it itself:**
-
-```php
-// config/octane.php
-'listeners' => [
-    RequestTerminated::class => [
-        fn () => \Livewire\Livewire::flushState(),
-    ],
-],
-```
-
-**Verified in source AND executed.** `bin/octane-probe.php` runs against any
-Laravel app with Livewire and demonstrates the mechanism in one process:
+Measured on a real Octane worker, Livewire v4.4.2, Octane v2.19.1, PHP 8.4.23 —
+one worker booted once, handling consecutive requests:
 
 ```
-== 1. the TESTING renderer ==
-   before Livewire::test(): true
-   after  Livewire::test(): false   <- SupportTesting calls flushState()
+[req 2] POST update -> goAway()   (visitor A triggers a REDIRECT)
+        redirect flag after: true
 
-== 2. the PRODUCTION render path ==
-   before Livewire::mount(): true
-   after  Livewire::mount(): true   <- nothing flushed it
+[req 3] GET /probe                (visitor B — a NEW person, same worker)
+        redirect flag on arrival: false   <-- Octane flushed it
 ```
 
-A completed production render leaves the state set; the testing renderer clears
-it. That contrast is the whole finding.
+`bin/octane-driver.php` reproduces that. There is no leak.
 
-**Not verified against a live Octane worker**, because Octane was not installed
-where this was read. What the probe proves is the precondition Octane depends
-on — that a finished request does not reset the state. Run it yourself:
+### The lesson, which generalises
 
-```bash
-php artisan tinker --execute="require 'bin/octane-probe.php';"
-```
+**"The framework does not do X" is not established by searching that
+framework.** The search here was thorough and correct — Livewire's source, and
+all 99 documentation files. The integration simply lives in the *other* repo.
+
+Before reporting that a framework fails to handle an adjacent tool, read the
+adjacent tool's source. Octane names its first-party integrations in one file.
+Checking it costs one grep and would have cost nothing to do first.
+
+This is the same discipline that stopped the computed-cache finding from
+becoming a bug report — the difference is that one was caught by reading the
+docs, and this one needed a running worker.
 
 ## 13 · A valid Livewire request has no rate limit
 
@@ -705,7 +675,6 @@ identity or another person's data.
 - [ ] Permission checks live inside the component, not only in `permission:` middleware.
 - [ ] `TrustProxies` is configured, so the checksum limiter keys on a real client address.
 - [ ] No action trusts state that was authorized only at mount.
-- [ ] On Octane, `Livewire::flushState()` runs on `RequestTerminated`.
 - [ ] The Livewire update route carries a `throttle`.
 - [ ] Every nested component authorizes for itself, not through its parent's route.
 - [ ] Every action that persists calls `$this->validate()` itself.

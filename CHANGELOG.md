@@ -8,6 +8,63 @@ one line when a newer release exists. It stays silent in every other case.
 
 ---
 
+## 1.2.1 — 2026-08-26
+
+### Fixed — the Octane finding in 1.2.0 was WRONG, and is withdrawn
+
+1.2.0 reported that Livewire leaks static state between requests on Octane. It
+does not. The report is withdrawn and item 12 of `attack-surface.md` is
+rewritten as a non-finding.
+
+**The source reading was accurate; the conclusion was not.** Livewire really
+does hold request- and user-scoped data in `static` properties, really does
+clear them only on `flush-state`, really does call `flushState()` from the two
+testing renderers and nowhere else, and the word "octane" really does appear
+once in all 99 documentation files.
+
+**Octane flushes Livewire itself.**
+`Laravel\Octane\Listeners\PrepareLivewireForNextOperation` calls
+`LivewireManager::flushState()` and is registered **by default** in Octane's
+`prepareApplicationForNextOperation()`, beside the Inertia, Scout and Socialite
+listeners. The published `config/octane.php` includes it through a spread, so it
+cannot be dropped by editing around it.
+
+Measured on a real worker — Livewire v4.4.2, Octane v2.19.1, PHP 8.4.23, one
+worker booted once:
+
+```
+[req 2] POST update -> goAway()   (visitor A triggers a REDIRECT)
+        redirect flag after: true
+[req 3] GET /probe                (visitor B — a NEW person, same worker)
+        redirect flag on arrival: false   <-- Octane flushed it
+```
+
+### The lesson, kept in the skill because it generalises
+
+**"The framework does not do X" is not established by searching that
+framework.** The search was thorough and correct. The integration lives in the
+other repo. Before reporting that a framework mishandles an adjacent tool, read
+the adjacent tool's source — Octane names its first-party integrations in one
+file, and one grep would have settled it.
+
+### Added
+
+- `bin/octane-driver.php` — drives a real Octane worker through consecutive
+  requests and prints the result. It is the artifact that settled this.
+- `verify-facts.php` gains a check on **Octane's** side, so the non-finding
+  stops being a non-finding if Octane ever drops that listener. It reports SKIP
+  where Octane is not installed rather than failing. 28 statements.
+- `bin/octane-probe.php` is retitled. On its own it shows only that a completed
+  render leaves the state set inside one process, which is true and is not a
+  leak. Its header now says so and points at the driver.
+
+### Not changed
+
+Nothing was filed upstream. The report was drafted, verified, and withdrawn
+before it was sent.
+
+---
+
 ## 1.2.0 — 2026-08-26
 
 ### Added — a fourth skill, `livewire-performance`
@@ -61,6 +118,10 @@ begins with an unconditional `return;`, so it writes nothing. There is no
 framework-introduced open redirect, and no path traversal in downloads.
 
 ### Added — the Octane finding, which is the largest one here
+
+> **WITHDRAWN in 1.2.1 — this section is wrong.** Octane flushes Livewire itself
+> via `PrepareLivewireForNextOperation`, registered by default. Verified on a
+> real worker. The section is kept as written for the record; see 1.2.1.
 
 **Livewire ships no Octane integration, and the word appears once in 99
 documentation files** — in `wire-stream.md`, saying `wire:stream` does not

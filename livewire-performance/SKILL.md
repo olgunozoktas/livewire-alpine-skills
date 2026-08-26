@@ -1,6 +1,6 @@
 ---
 name: livewire-performance
-version: 1.2.0
+version: 1.2.1
 description: 'Use for Livewire performance work. Covers what one Livewire request actually costs, the snapshot that travels both ways on every request, model properties that re-query through the write connection, computed property caching, render and poll frequency, and how to MEASURE before you change anything. Use it when a component feels slow, when a page makes too many requests, when the payload is large, or before you optimise anything. Keywords: livewire performance, slow component, wire:snapshot size, payload, N+1, wire:model.live debounce, wire:poll, #[Computed] cache persist, #[Renderless], #[Lazy], islands, wire:navigate, useWritePdo, newQueryForRestoration, morph, re-render, bottleneck, profiling.'
 ---
 
