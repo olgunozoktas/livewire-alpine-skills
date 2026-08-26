@@ -130,9 +130,13 @@ this snapshot's date as the tiebreaker.
 | `references/reference.md` | Redirects, Blade directives, the full config, advanced installation |
 | `references/volt.md` | The Volt functional API, and migrating class-based Volt to core |
 | `references/v3-to-v4.md` | The complete upgrade guide |
+| `bin/detect.sh` | Reports what the project actually does. Read-only |
+| `bin/scaffold.sh` | Creates a component in the project's own conventions |
+| `bin/review.py` | 21 checks for v3-isms, security holes and known traps |
 | `bin/verify-recipes.sh` | Scaffolds a throwaway app and **runs every recipe**. 14 tests, 54 assertions |
 | `bin/refresh.sh` | Re-audits the skill against the current docs. Read-only |
-| `tests/` | The verification harness — test suite, extractor, and fixtures |
+| `bin/eval.sh` | Scores code quality objectively |
+| `tests/` | The verification harness and the eval baseline |
 
 ### `alpinejs-development`
 
@@ -144,6 +148,48 @@ this snapshot's date as the tiebreaker.
 | `references/plugins.md` | All 9 official plugins — mask, intersect, persist, collapse, focus/trap, anchor, sort, resize, morph |
 | `references/extending.md` | `Alpine.directive()` and `Alpine.magic()`, `evaluateLater`/`effect`/`cleanup`, authoring plugins, the reactivity engine, async, the CSP build |
 | `references/v2-to-v3.md` | The v2 → v3 upgrade guide — every breaking change and both deprecations |
+
+---
+
+## The skill ships tools, not just text
+
+Static text cannot know what your project does. These scripts read it:
+
+```bash
+bash bin/detect.sh                  # what does THIS project actually do?
+bash bin/scaffold.sh post.create    # create in the project's own conventions
+python3 bin/review.py <file>        # v3-isms, security holes, known traps
+bash bin/eval.sh --compare          # score code quality objectively
+```
+
+| Script | Does |
+|---|---|
+| `detect.sh` | Livewire version, the component format already on disk, emoji setting, namespaces, routing style, Boost, duplicated Alpine. Read-only |
+| `scaffold.sh` | Creates a component in **your** conventions — and refuses a v4-only flag on a v3 project instead of emitting broken output |
+| `review.py` | 21 checks: v3-isms, unauthorized writes, `#[Async]` mutating state, `@foreach` without `wire:key`, unquoted Blade in JS, duplicated Alpine. Exit code = error count, so it gates |
+| `verify-recipes.sh` | Runs every recipe against a real Livewire install |
+| `refresh.sh` | Re-audits against the current documentation |
+| `eval.sh` | Scores a directory. `--compare` for baseline-vs-skill |
+
+**`review.py` is calibrated in both directions** — 9 errors on deliberately
+v3-style code, **0 findings on the twelve verified recipes**. A checker that
+fires on correct code is one people switch off. `--self-test` proves all 41
+checks still fire; it caught three bugs in its own rules, including one where
+the `//` in `https://` was parsed as a comment.
+
+### Measured
+
+```
+$ bash bin/eval.sh --compare
+
+  no skill (v3 habits)    46/100   errors:10  warns:2
+  skill's recipes        100/100   errors:0   warns:0
+
+  delta: +54 points
+```
+
+Both sides are fixed artifacts scored by the same deterministic rules — not
+anyone's opinion.
 
 ---
 

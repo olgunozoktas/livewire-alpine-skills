@@ -1,0 +1,320 @@
+#!/usr/bin/env python3
+"""Review Livewire component source for v3-isms, security holes and known traps.
+
+    python3 bin/review.py path/to/⚡component.blade.php [more...]
+    python3 bin/review.py --json path/to/component.php
+    python3 bin/review.py --self-test
+
+Exit code is the number of ERROR-level findings, so it works as a gate.
+
+Every rule here corresponds to a documented behaviour or a defect that has
+actually bitten. `--self-test` feeds each rule a snippet that must trigger it
+and one that must not — a checker that can never fire is indistinguishable from
+a broken one.
+"""
+import re
+import sys
+import json
+import os
+
+ERROR, WARN, INFO = "ERROR", "WARN", "INFO"
+
+# Helper methods on Livewire\Component that a component must NOT redefine.
+#
+# Deliberately excluded: mount, render, boot, booted, hydrate, dehydrate,
+# updating, updated, rendering, rendered, exception, placeholder. Those are
+# LIFECYCLE HOOKS — defining them is how Livewire is meant to be used.
+RESERVED = [
+    "reset", "validate", "dispatch", "redirect", "redirectRoute", "redirectIntended",
+    "redirectAction", "skipRender", "fill", "pull", "only", "all", "js", "stream",
+    "authorize", "resetPage", "setPage", "nextPage", "previousPage", "getId",
+    "resetValidation", "addError", "getErrorBag", "skipTransition", "transition",
+]
+
+RULES = [
+    # id, severity, pattern, message, fix, a hit sample, a miss sample
+    ("v3-route-get", ERROR,
+     r"Route::get\(\s*['\"][^'\"]*['\"]\s*,\s*[A-Z]\w*::class\s*\)",
+     "v3 routing for a page component.",
+     "Use Route::livewire('/path', 'pages::name') — required for SFC/MFC.",
+     "Route::get('/posts', ShowPosts::class);",
+     "Route::livewire('/posts', 'pages::posts');"),
+
+    ("v3-wire-model-defer", ERROR,
+     r"wire:model\.defer\b",
+     "wire:model.defer was removed in v4.",
+     "Deferred is the DEFAULT in v4 — just use wire:model.",
+     '<input wire:model.defer="title">',
+     '<input wire:model="title">'),
+
+    ("v3-wire-scroll", ERROR,
+     r"\bwire:scroll\b",
+     "wire:scroll was renamed in v4.",
+     "Use wire:navigate:scroll.",
+     '<div wire:scroll>',
+     '<div wire:navigate:scroll>'),
+
+    ("v3-transition-modifiers", ERROR,
+     r"wire:transition\.(opacity|scale|duration|delay|origin)\b",
+     "wire:transition modifiers were removed in v4.",
+     "v4 uses the View Transitions API and takes no modifiers. "
+     "Use #[Transition(type:)] plus CSS, or Alpine's x-transition.",
+     '<div wire:transition.opacity>',
+     '<div wire:transition>'),
+
+    ("v3-js-action", WARN,
+     r"\$wire\.\$js\(\s*['\"]",
+     "Deprecated JS action syntax.",
+     "Assign instead: this.$js.name = () => {}",
+     "$wire.$js('save', () => {})",
+     "this.$js.save = () => {}"),
+
+    ("v3-hooks", ERROR,
+     r"Livewire\.hook\(\s*['\"](commit|request)['\"]",
+     "The commit/request hooks are deprecated.",
+     "Use Livewire.interceptMessage() / Livewire.interceptRequest().",
+     "Livewire.hook('commit', cb)",
+     "Livewire.interceptMessage(cb)"),
+
+    ("v3-stream-to", ERROR,
+     r"\$this->stream\([^)]*\bto\s*:",
+     "stream(to:) is the legacy v3 parameter.",
+     "Use name: (matches wire:stream), el: (a selector) or ref: (a wire:ref).",
+     "$this->stream(to: '#out', content: 'x');",
+     "$this->stream(content: 'x', name: 'out');"),
+
+    ("v3-entangle-directive", ERROR,
+     r"@entangle\(",
+     "The @entangle Blade directive is deprecated and breaks on element removal.",
+     "Read and write $wire.property directly.",
+     'x-data="{ o: @entangle(\'open\') }"',
+     'x-data="{ o: false }"'),
+
+    ("entangle-discouraged", WARN,
+     r"\$wire\.entangle\(",
+     "$wire.entangle() duplicates state and is discouraged.",
+     "Use $wire.property directly.",
+     "$wire.entangle('open')",
+     "$wire.open"),
+
+    ("unclosed-component-tag", ERROR,
+     r"<livewire:[a-z0-9:.-]+(?:\s+[^>]*?)?(?<![/\"'])>(?![\s\S]*?</livewire:)",
+     "Component tag is not closed.",
+     "v4 needs <livewire:name /> or an explicit closing tag, or later markup "
+     "is read as slot content and the component does not render.",
+     '<livewire:counter>',
+     '<livewire:counter />'),
+
+    ("foreach-missing-key", ERROR,
+     r"@foreach\s*\([^)]*\)\s*\n(?:(?!wire:key|@endforeach|:wire:key)[\s\S]){0,220}?@endforeach",
+     "A @foreach with no wire:key.",
+     "Add wire:key to the first element inside the loop. Without it you get "
+     '"Component already initialized" and "Snapshot missing".',
+     '@foreach ($posts as $p)\n    <div>{{ $p->title }}</div>\n@endforeach',
+     '@foreach ($posts as $p)\n    <div wire:key="{{ $p->id }}">{{ $p->title }}</div>\n@endforeach'),
+
+    ("script-wrapper-in-sfc", WARN,
+     r"@script\b",
+     "@script is only for CLASS-BASED components.",
+     "Single-file and multi-file components use a bare <script> tag.",
+     "@script\n<script></script>\n@endscript",
+     "<script>this.$js.x = () => {}</script>"),
+
+    ("alpine-double-include", ERROR,
+     r"(cdn\.jsdelivr\.net/npm/alpinejs|from\s+['\"]alpinejs['\"]|Alpine\.start\(\))",
+     "Alpine looks separately included.",
+     'Livewire bundles Alpine. Two copies give "Detected multiple instances of '
+     'Alpine running" and "$wire is not defined".',
+     "<script src='https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js'></script>",
+     "<div x-data='{ open: false }'></div>"),
+
+    ("unquoted-blade-in-js", ERROR,
+     r"\$wire\.[A-Za-z_]\w*\(\s*\{\{\s*\$[A-Za-z_][\w>\-]*(?:->\w+)*\s*\}\}\s*\)",
+     "Unquoted Blade value inside a JavaScript expression.",
+     "Quote it: $wire.method('{{ $model->uuid }}'). Integer ids happen to work, "
+     "so this only breaks the day you switch to UUIDs.",
+     'x-on:click="$wire.del({{ $p->uuid }})"',
+     'x-on:click="$wire.del(\'{{ $p->uuid }}\')"'),
+
+    ("async-mutates-state", ERROR,
+     r"#\[Async\][\s\S]{0,240}?\$this->\w+\s*(?:\+\+|--|=[^=])",
+     "An #[Async] action mutating component state.",
+     "Async actions run in PARALLEL from the same snapshot, so updates are "
+     "lost. Use async only for pure side effects.",
+     "#[Async]\npublic function inc() { $this->count++; }",
+     "#[Async]\npublic function log() { Activity::log('x'); }"),
+
+    ("public-model-id", WARN,
+     r"public\s+\$(\w*[Ii]d)\s*(?:=|;)",
+     "A public id property is client-mutable.",
+     "Add #[Locked], or store the whole model — a model property has its key "
+     "locked automatically.",
+     "public $postId;",
+     "#[Locked]\npublic $postId;"),
+
+    ("find-without-authorize", ERROR,
+     r"function\s+\w+\s*\([^)]*\)\s*(?::\s*\w+\s*)?\{(?:(?!\bfunction\b)[\s\S]){0,400}?::(?:find|findOrFail)\s*\((?:(?!\bfunction\b)[\s\S]){0,400}?->(?:delete|update|save)\s*\(",
+     "A model is fetched and written without an authorization check.",
+     "Action parameters are untrusted input. Call $this->authorize(...) or use "
+     "#[Authorize] before writing.",
+     "public function del($id) { $p = Post::find($id); $p->delete(); }",
+     "public function del($id) { $p = Post::find($id); $this->authorize('delete', $p); $p->delete(); }"),
+
+    ("eloquent-public-property", WARN,
+     r"public\s+\$\w+\s*=\s*\[\s*\];?\s*\n[\s\S]{0,200}?\$this->\w+\s*=\s*\w+::(?:all|where|query)\(",
+     "A query result stored in a public property.",
+     "Query constraints are lost between requests and the query re-runs on "
+     "every hydrate. Use a #[Computed] property.",
+     "public $posts = [];\npublic function mount() { $this->posts = Post::all(); }",
+     "#[Computed]\npublic function posts() { return Post::all(); }"),
+
+    ("upload-reserved", ERROR,
+     r"use\s+WithFileUploads;[\s\S]{0,600}?public\s+function\s+upload\s*\(",
+     '"upload" is reserved on a WithFileUploads component.',
+     "Rename the method — save() is the convention.",
+     "use WithFileUploads;\npublic function upload() {}",
+     "use WithFileUploads;\npublic function save() {}"),
+
+]
+
+# Some rules need context a single regex cannot express.
+# If this pattern appears INSIDE the match, the finding is suppressed.
+SUPPRESS_IF_IN_MATCH = {
+    "find-without-authorize": r"\bauthorize\s*\(|#\[Authorize",
+}
+# If this pattern appears in the N characters BEFORE the match, suppress it.
+SUPPRESS_IF_BEFORE = {
+    "public-model-id": (r"#\[Locked\]", 40),
+}
+
+# NOT IMPLEMENTED ON PURPOSE — "more than one root element". Detecting it needs
+# real HTML nesting, and every regex approximation fired on correct templates.
+# A checker that cries wolf gets the whole tool switched off, so this one is left
+# to Livewire itself, which throws a clear error at render time.
+
+RESERVED_RE = re.compile(
+    r"public\s+function\s+(" + "|".join(RESERVED) + r")\s*\(")
+
+
+def strip_comments(src: str) -> str:
+    """Blank out // and # line comments and /* */ blocks, preserving offsets."""
+    out = list(src)
+    i, n = 0, len(src)
+    while i < n:
+        two = src[i:i + 2]
+        if two == "/*":
+            j = src.find("*/", i + 2)
+            j = n if j == -1 else j + 2
+            for k in range(i, j):
+                if out[k] != "\n":
+                    out[k] = " "
+            i = j
+        elif two == "//" and not (i > 0 and src[i - 1] == ":"):
+            # ':' before '//' means a URL (https://…), not a comment.
+            j = src.find("\n", i)
+            j = n if j == -1 else j
+            for k in range(i, j):
+                out[k] = " "
+            i = j
+        else:
+            i += 1
+    return "".join(out)
+
+
+def line_of(src: str, pos: int) -> int:
+    return src.count("\n", 0, pos) + 1
+
+
+def review(src: str, path: str = "<input>"):
+    findings = []
+    scan = strip_comments(src)
+
+    for rid, sev, pat, msg, fix, _hit, _miss in RULES:
+        for m in re.finditer(pat, scan, re.M):
+            if rid in SUPPRESS_IF_IN_MATCH and re.search(SUPPRESS_IF_IN_MATCH[rid], m.group(0)):
+                continue
+            if rid in SUPPRESS_IF_BEFORE:
+                pre_pat, window = SUPPRESS_IF_BEFORE[rid]
+                if re.search(pre_pat, scan[max(0, m.start() - window):m.start()]):
+                    continue
+            findings.append({
+                "rule": rid, "severity": sev, "file": path,
+                "line": line_of(src, m.start()),
+                "message": msg, "fix": fix,
+                "snippet": src[m.start():m.end()].strip().split("\n")[0][:90],
+            })
+
+    for m in RESERVED_RE.finditer(scan):
+        name = m.group(1)
+        findings.append({
+            "rule": "reserved-method", "severity": ERROR, "file": path,
+            "line": line_of(src, m.start()),
+            "message": f'public function {name}() overrides Livewire\\Component::{name}().',
+            "fix": f"Rename it. Overriding {name}() silently breaks $this->{name}() "
+                   "everywhere in this component.",
+            "snippet": m.group(0),
+        })
+
+    findings.sort(key=lambda f: (f["line"], f["rule"]))
+    return findings
+
+
+def self_test() -> int:
+    """Every rule must fire on its hit sample and stay quiet on its miss sample."""
+    bad = 0
+    for rid, sev, pat, msg, fix, hit, miss in RULES:
+        # Go through review() so the suppressors are exercised, not just the regex.
+        if not [f for f in review(hit) if f["rule"] == rid]:
+            print(f"  FAIL {rid}: did not fire on its hit sample"); bad += 1
+        if [f for f in review(miss) if f["rule"] == rid]:
+            print(f"  FAIL {rid}: fired on its miss sample"); bad += 1
+    if not RESERVED_RE.search("public function reset() {}"):
+        print("  FAIL reserved-method: did not fire"); bad += 1
+    if RESERVED_RE.search("public function resetTheThing() {}"):
+        print("  FAIL reserved-method: fired on a longer name"); bad += 1
+    if strip_comments("// public function reset() {}").strip():
+        print("  FAIL strip_comments: line comment not blanked"); bad += 1
+    total = len(RULES) * 2 + 3
+    print(f"  {total - bad}/{total} checks passed")
+    return bad
+
+
+def main() -> int:
+    args = [a for a in sys.argv[1:]]
+    if "--self-test" in args:
+        print("review.py self-test — every rule must fire, and must not over-fire")
+        return self_test()
+
+    as_json = "--json" in args
+    paths = [a for a in args if not a.startswith("--")]
+    if not paths:
+        print(__doc__)
+        return 0
+
+    all_findings = []
+    for p in paths:
+        if not os.path.isfile(p):
+            print(f"not a file: {p}", file=sys.stderr)
+            continue
+        with open(p, encoding="utf-8", errors="replace") as fh:
+            all_findings += review(fh.read(), p)
+
+    if as_json:
+        print(json.dumps(all_findings, indent=2))
+    else:
+        for f in all_findings:
+            print(f"{f['severity']:5} {f['file']}:{f['line']}  [{f['rule']}]")
+            print(f"      {f['message']}")
+            print(f"      fix: {f['fix']}")
+            if f["snippet"]:
+                print(f"      >>> {f['snippet']}")
+            print()
+        errs = sum(1 for f in all_findings if f["severity"] == ERROR)
+        warns = sum(1 for f in all_findings if f["severity"] == WARN)
+        print(f"{len(all_findings)} finding(s): {errs} error, {warns} warn")
+
+    return sum(1 for f in all_findings if f["severity"] == ERROR)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

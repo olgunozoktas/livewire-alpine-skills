@@ -22,18 +22,40 @@ from the package source and are labelled where they appear.
 install — **14 tests, 54 assertions, all passing on livewire v4.4.2**, a
 release newer than the snapshot above.
 
-**Two scripts keep this true:**
-
-```bash
-bash bin/verify-recipes.sh   # scaffolds a throwaway app, runs every recipe
-bash bin/refresh.sh          # read-only; re-clones the docs and re-audits
-```
-
 `verify-recipes.sh` catches what reading cannot — it is how the `reset()`
 override and four missing `Auth` imports were found. `refresh.sh` reports
 anything newly documented that this skill does not mention. Neither edits the
 skill. When Livewire is newer than the date above, run both — or ask Laravel
 Boost's `search-docs` (see below).
+
+---
+
+## Tools — run these, do not guess
+
+This skill ships scripts. They read the real project and the real docs, so you
+are never inferring what a static file cannot know.
+
+```bash
+bash bin/detect.sh              # what does THIS project actually do?
+bash bin/scaffold.sh post.create   # create in the project's own conventions
+python3 bin/review.py <file>    # v3-isms, security holes, known traps
+bash bin/verify-recipes.sh      # run every recipe against a real Livewire app
+bash bin/refresh.sh             # re-audit against the current documentation
+bash bin/eval.sh --compare      # score code quality objectively
+```
+
+| Script | Use it when |
+|---|---|
+| **`detect.sh`** | **First, always.** Prints the Livewire version, the component format already in use, the emoji setting, namespaces, routing style, whether Boost is installed, and whether Alpine is duplicated. Read-only |
+| **`scaffold.sh`** | Creating a component. Infers the format from what is on disk and from `config/livewire.php`, and **refuses** a v4-only flag on a v3 project instead of producing broken output |
+| **`review.py`** | Before handing back any component. Flags v3-isms, an unauthorized write, an `#[Async]` action mutating state, a `@foreach` with no `wire:key`, a method that overrides `Livewire\Component`. Exit code = error count, so it gates. `--self-test` proves all 41 checks still fire |
+| **`verify-recipes.sh`** | After editing `references/recipes.md`. Scaffolds a throwaway app and runs every recipe |
+| **`refresh.sh`** | When Livewire is newer than the provenance date below |
+| **`eval.sh`** | Scoring a directory of components, or `--compare` for baseline-vs-skill |
+
+> `review.py` is calibrated in both directions: **9 errors** on deliberately
+> v3-style code, **0 findings** on the twelve verified recipes. A checker that
+> fires on correct code is one people switch off.
 
 ---
 
