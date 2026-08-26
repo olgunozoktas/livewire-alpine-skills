@@ -187,10 +187,90 @@ SUPPRESS_IF_BEFORE = {
     "public-model-id": (r"#\[Locked\]", 40),
 }
 
-# NOT IMPLEMENTED ON PURPOSE — "more than one root element". Detecting it needs
-# real HTML nesting, and every regex approximation fired on correct templates.
-# A checker that cries wolf gets the whole tool switched off, so this one is left
-# to Livewire itself, which throws a clear error at render time.
+VOID_TAGS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
+    "param", "source", "track", "wbr",
+}
+
+# Blade control directives that open a block, and the ones that close it.
+BLADE_OPEN = re.compile(
+    r"@(if|unless|foreach|forelse|for|while|isset|empty|switch|auth|guest|"
+    r"production|env|can|cannot|canany|error|once|push|prepend|section|verbatim|"
+    r"island|placeholder|persist|teleport|assets|script|volt|fragment)\b")
+BLADE_CLOSE = re.compile(
+    r"@(endif|endunless|endforeach|endforelse|endfor|endwhile|endisset|endempty|"
+    r"endswitch|endauth|endguest|endproduction|endenv|endcan|endcannot|endcanany|"
+    r"enderror|endonce|endpush|endprepend|endsection|endverbatim|endisland|"
+    r"endplaceholder|endpersist|endteleport|endassets|endscript|endvolt|"
+    r"endfragment)\b")
+
+TAG_RE = re.compile(r"<(/?)([a-zA-Z][\w.:-]*)([^>]*?)(/?)>", re.S)
+
+
+def count_root_elements(template: str):
+    """Count top-level elements in a component template, nesting-aware.
+
+    Returns (count, [line numbers of each root]). Anything inside a Blade
+    control block is skipped — a component whose root is wrapped in @if has one
+    conditional root, not zero, and we must not guess which branch wins.
+    """
+    # Remove comments and the CONTENTS of script/style, keeping the tags.
+    t = re.sub(r"<!--.*?-->", "", template, flags=re.S)
+    t = re.sub(r"\{\{--.*?--\}\}", "", t, flags=re.S)
+    t = re.sub(r"(<(script|style)\b[^>]*>)(.*?)(</\2>)",
+               lambda m: m.group(1) + m.group(4), t, flags=re.S | re.I)
+
+    depth = 0
+    blade_depth = 0
+    roots = []
+    pos = 0
+    for m in TAG_RE.finditer(t):
+        # Track Blade block depth in the text between tags.
+        between = t[pos:m.start()]
+        blade_depth += len(BLADE_OPEN.findall(between)) - len(BLADE_CLOSE.findall(between))
+        pos = m.end()
+
+        closing, name, attrs, self_closed = m.groups()
+        lname = name.lower()
+        if lname in ("script", "style") and depth == 0:
+            continue                      # sibling <script> is allowed by Livewire
+        if lname.startswith("x-slot"):
+            continue                      # layout slots live outside the root
+        if lname in VOID_TAGS or self_closed:
+            if not closing and depth == 0 and blade_depth <= 0:
+                roots.append(t.count("\n", 0, m.start()) + 1)
+            continue
+        if closing:
+            depth = max(0, depth - 1)
+        else:
+            if depth == 0 and blade_depth <= 0:
+                roots.append(t.count("\n", 0, m.start()) + 1)
+            depth += 1
+    return len(roots), roots
+
+
+def check_roots(src: str, path: str):
+    """A component template must have exactly one root element."""
+    if "new class extends" not in src and "extends Component" not in src:
+        return []                          # not a component template
+    i = src.rfind("?>")
+    if i == -1:
+        return []                          # class-based: view is a separate file
+    template = src[i + 2:]
+    if not template.strip():
+        return []
+    n, lines = count_root_elements(template)
+    if n <= 1:
+        return []
+    return [{
+        "rule": "multi-root", "severity": ERROR, "file": path,
+        "line": lines[1],
+        "message": f"The template has {n} root elements; a component needs exactly one.",
+        "fix": "Wrap them in a single element. (Layout <x-slot> tags and a "
+               "sibling <script> are allowed and are not counted.)",
+        "snippet": f"roots at lines {', '.join(map(str, lines))}",
+    }]
+
 
 RESERVED_RE = re.compile(
     r"public\s+function\s+(" + "|".join(RESERVED) + r")\s*\(")
@@ -255,6 +335,8 @@ def review(src: str, path: str = "<input>"):
             "snippet": m.group(0),
         })
 
+    findings += check_roots(src, path)
+
     findings.sort(key=lambda f: (f["line"], f["rule"]))
     return findings
 
@@ -274,9 +356,74 @@ def self_test() -> int:
         print("  FAIL reserved-method: fired on a longer name"); bad += 1
     if strip_comments("// public function reset() {}").strip():
         print("  FAIL strip_comments: line comment not blanked"); bad += 1
-    total = len(RULES) * 2 + 3
+
+    root_cases = [
+        ("two siblings", "new class extends Component {};\n?>\n<div>a</div>\n<div>b</div>", True),
+        ("one root, nested", "new class extends Component {};\n?>\n<div><span>a</span><span>b</span></div>", False),
+        ("one root + script", "new class extends Component {};\n?>\n<div>a</div>\n<script>let x = 1 < 2</script>", False),
+        ("one root + x-slot", "new class extends Component {};\n?>\n<x-slot:lang>fr</x-slot>\n<div>a</div>", False),
+        ("void tag inside", "new class extends Component {};\n?>\n<form><input type=\"text\"><br></form>", False),
+        ("root wrapped in @if", "new class extends Component {};\n?>\n@if ($x)\n<div>a</div>\n@endif", False),
+        ("foreach inside root", "new class extends Component {};\n?>\n<div>@foreach ($a as $b)<p>{{ $b }}</p>@endforeach</div>", False),
+        ("self-closing sibling", "new class extends Component {};\n?>\n<div/>\n<div/>", True),
+        ("comment then root", "new class extends Component {};\n?>\n<!-- hi -->\n<div>a</div>", False),
+    ]
+    for label, src, should_fire in root_cases:
+        fired = bool(check_roots(src, "t"))
+        if fired != should_fire:
+            print(f"  FAIL multi-root ({label}): expected {'a finding' if should_fire else 'silence'}")
+            bad += 1
+
+    total = len(RULES) * 2 + 3 + len(root_cases)
     print(f"  {total - bad}/{total} checks passed")
     return bad
+
+
+def check_frontmatter(path: str):
+    """A SKILL.md whose YAML does not parse is a skill no agent can load.
+
+    The usual cause is an unquoted description containing ": " — YAML reads that
+    as a nested mapping. GitHub shows it as
+    "mapping values are not allowed in this context".
+    """
+    try:
+        import yaml
+    except ImportError:
+        return []
+    try:
+        src = open(path, encoding="utf-8").read()
+    except OSError:
+        return [{"rule": "frontmatter", "severity": ERROR, "file": path, "line": 1,
+                 "message": "SKILL.md not found.", "fix": "", "snippet": ""}]
+    if not src.startswith("---"):
+        return [{"rule": "frontmatter", "severity": ERROR, "file": path, "line": 1,
+                 "message": "SKILL.md has no YAML frontmatter.",
+                 "fix": "Open with --- , then name: and description: , then --- .",
+                 "snippet": src[:40]}]
+    try:
+        end = src.index("\n---", 3)
+    except ValueError:
+        return [{"rule": "frontmatter", "severity": ERROR, "file": path, "line": 1,
+                 "message": "Frontmatter is never closed.", "fix": "Add a closing --- .",
+                 "snippet": ""}]
+    block = src[4:end]
+    try:
+        data = yaml.safe_load(block)
+    except Exception as e:
+        first = str(e).split("\n")[0]
+        return [{"rule": "frontmatter", "severity": ERROR, "file": path, "line": 2,
+                 "message": f"Frontmatter is not valid YAML: {first}",
+                 "fix": "Single-quote the description. An unquoted \": \" reads as a "
+                        "nested mapping, and a backslash (Livewire\\Component) breaks "
+                        "double-quoted style.",
+                 "snippet": block.split("\n")[0][:70]}]
+    out = []
+    for key in ("name", "description"):
+        if not data or key not in data:
+            out.append({"rule": "frontmatter", "severity": ERROR, "file": path,
+                        "line": 2, "message": f"Frontmatter has no `{key}`.",
+                        "fix": "Both name and description are required.", "snippet": ""})
+    return out
 
 
 def main() -> int:
@@ -284,6 +431,22 @@ def main() -> int:
     if "--self-test" in args:
         print("review.py self-test — every rule must fire, and must not over-fire")
         return self_test()
+    if "--frontmatter" in args:
+        paths = [a for a in args if not a.startswith("--")] or \
+                [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "SKILL.md")]
+        bad = 0
+        for p in paths:
+            fs = check_frontmatter(p)
+            if fs:
+                bad += len(fs)
+                for f in fs:
+                    print(f"ERROR {f['file']}:{f['line']}  [{f['rule']}]")
+                    print(f"      {f['message']}")
+                    if f["fix"]:
+                        print(f"      fix: {f['fix']}")
+            else:
+                print(f"  OK  {p}")
+        return bad
 
     as_json = "--json" in args
     paths = [a for a in args if not a.startswith("--")]

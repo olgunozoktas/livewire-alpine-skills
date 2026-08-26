@@ -114,7 +114,8 @@ fi
 say ""
 say "== Routing"
 RL=$(grep -rl 'Route::livewire(' routes/ 2>/dev/null | wc -l | tr -d ' ')
-RG=$(grep -rlE 'Route::get\([^)]*Livewire' routes/ 2>/dev/null | wc -l | tr -d ' ')
+# Any Route::get() mapped straight to a class — the v3 page-component shape.
+RG=$(grep -rlE "Route::get\(\s*['\"][^'\"]*['\"]\s*,\s*[A-Z][A-Za-z0-9_\\\\]*::class" routes/ 2>/dev/null | wc -l | tr -d ' ')
 kv "Route::livewire()" "$RL file(s)"
 kv "Route::get(Component)" "$RG file(s)"
 [ "$MAJOR" = "4" ] && [ "$RG" -gt 0 ] && warn "v4 prefers Route::livewire() for page components"
@@ -147,6 +148,22 @@ if [ -n "$LAYOUT" ]; then
     kv "layout" "resources/views/layouts/app.blade.php"
 else
     kv "layout" "resources/views/layouts/app.blade.php not found (php artisan livewire:layout)"
+fi
+
+say ""
+say "== Is this skill current?"
+SKILL_MINOR="4.4"       # highest livewire minor this skill has been verified against
+SKILL_AUDIT="2026-08-26"
+kv "skill verified against" "livewire $SKILL_MINOR (audited $SKILL_AUDIT)"
+if [ -n "$LW" ] && [ "$MAJOR" = "4" ]; then
+    PROJ_MINOR=$(printf '%s' "$LW" | sed 's/^v//' | cut -d. -f1,2)
+    if [ "$PROJ_MINOR" != "$SKILL_MINOR" ] \
+       && [ "$(printf '%s\n%s\n' "$SKILL_MINOR" "$PROJ_MINOR" | sort -V | tail -1)" = "$PROJ_MINOR" ]; then
+        warn "this project is on $PROJ_MINOR — NEWER than the skill's verification"
+        warn "run: bash bin/refresh.sh    (and prefer Boost's search-docs, or the live docs)"
+    else
+        kv "status" "skill covers this project's version"
+    fi
 fi
 
 say ""

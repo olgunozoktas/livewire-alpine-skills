@@ -1,6 +1,6 @@
 ---
 name: alpinejs-development
-description: Expert knowledge of Alpine.js v3 (alpinejs.dev) — the lightweight JavaScript framework for sprinkling client-side behavior into server-rendered HTML. Use this skill for ANY Alpine work: writing x-data components, x-show/x-if/x-for templates, x-model form binding, x-transition animations, x-bind/x-on handlers and their modifiers, the $refs/$store/$watch/$dispatch/$nextTick/$el/$id magics, Alpine.data/Alpine.store/Alpine.bind globals, custom directives and the extension API, reactivity internals, CSP-safe mode, and the official plugins (mask, intersect, persist, collapse, focus/trap, anchor, sort, resize, morph). Also use when Alpine appears inside Laravel Livewire, Blade, Rails, Django, Hotwire, or any HTML-over-the-wire stack. Keywords: alpine, alpinejs, alpine.js, x-data, x-init, x-show, x-if, x-for, x-model, x-modelable, x-bind, x-on, x-text, x-html, x-effect, x-ref, x-cloak, x-ignore, x-teleport, x-transition, x-id, x-mask, x-intersect, x-persist, x-collapse, x-trap, x-anchor, x-sort, x-resize, $el, $refs, $root, $data, $store, $watch, $dispatch, $nextTick, $id, $focus, $persist, Alpine.data, Alpine.store, Alpine.bind, Alpine.directive, Alpine.reactive, Alpine.effect, Alpine.morph, alpine:init.
+description: 'Expert knowledge of Alpine.js v3 (alpinejs.dev) — the lightweight JavaScript framework for sprinkling client-side behavior into server-rendered HTML. Use this skill for ANY Alpine work: writing x-data components, x-show/x-if/x-for templates, x-model form binding, x-transition animations, x-bind/x-on handlers and their modifiers, the $refs/$store/$watch/$dispatch/$nextTick/$el/$id magics, Alpine.data/Alpine.store/Alpine.bind globals, custom directives and the extension API, reactivity internals, CSP-safe mode, and the official plugins (mask, intersect, persist, collapse, focus/trap, anchor, sort, resize, morph). Also use when Alpine appears inside Laravel Livewire, Blade, Rails, Django, Hotwire, or any HTML-over-the-wire stack. Keywords: alpine, alpinejs, alpine.js, x-data, x-init, x-show, x-if, x-for, x-model, x-modelable, x-bind, x-on, x-text, x-html, x-effect, x-ref, x-cloak, x-ignore, x-teleport, x-transition, x-id, x-mask, x-intersect, x-persist, x-collapse, x-trap, x-anchor, x-sort, x-resize, $el, $refs, $root, $data, $store, $watch, $dispatch, $nextTick, $id, $focus, $persist, Alpine.data, Alpine.store, Alpine.bind, Alpine.directive, Alpine.reactive, Alpine.effect, Alpine.morph, alpine:init.'
 ---
 
 # Alpine.js v3
@@ -74,6 +74,27 @@ Two more worth internalizing:
 
 **9 plugins:** mask · intersect · persist · collapse · focus (`x-trap`/`$focus`)
 · anchor · sort · resize · morph
+
+---
+
+## Tool — run it, do not eyeball it
+
+```bash
+python3 bin/review.py <file>...      # v2-isms and documented traps
+python3 bin/review.py --self-test    # prove all 30 checks still fire
+```
+
+14 checks: `x-spread`, `x-show.transition`, `x-if.transition`, `.away`,
+`deferLoadingAlpine`, bound `x-ref`, `x-if`/`x-for` not on a `<template>`,
+`x-for` without `:key`, `x-html` on untrusted content, `$persist` with an arrow
+function inside `Alpine.data()`, a `$watch` callback that writes to the object
+it watches, `x-cloak` with no `[x-cloak]` CSS, and Alpine directives in a file
+with no `x-data`.
+
+Exit code is the error count, so it gates. It is calibrated in both directions:
+**7 errors on v2-era markup, 0 findings on correct Livewire+Alpine** — the
+no-`x-data` check knows a Livewire component root is already an Alpine
+component, and knows `x-data` may sit on an ancestor.
 
 ---
 

@@ -9,8 +9,10 @@ the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| `livewire-development` | ~9,000 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
-| `alpinejs-development` | ~2,840 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
+| [`livewire-development`](livewire-development/) | ~9,200 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
+| [`alpinejs-development`](alpinejs-development/) | ~2,900 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
+
+Each skill has its own README with the full file map.
 
 ---
 
@@ -166,16 +168,32 @@ bash bin/eval.sh --compare          # score code quality objectively
 |---|---|
 | `detect.sh` | Livewire version, the component format already on disk, emoji setting, namespaces, routing style, Boost, duplicated Alpine. Read-only |
 | `scaffold.sh` | Creates a component in **your** conventions — and refuses a v4-only flag on a v3 project instead of emitting broken output |
-| `review.py` | 21 checks: v3-isms, unauthorized writes, `#[Async]` mutating state, `@foreach` without `wire:key`, unquoted Blade in JS, duplicated Alpine. Exit code = error count, so it gates |
+| `review.py` | 22 checks: v3-isms, unauthorized writes, `#[Async]` mutating state, `@foreach` without `wire:key`, **multi-root templates** (nesting-aware, not a regex), unquoted Blade in JS, duplicated Alpine, invalid SKILL.md frontmatter. Exit code = error count, so it gates |
 | `verify-recipes.sh` | Runs every recipe against a real Livewire install |
 | `refresh.sh` | Re-audits against the current documentation |
 | `eval.sh` | Scores a directory. `--compare` for baseline-vs-skill |
 
-**`review.py` is calibrated in both directions** — 9 errors on deliberately
-v3-style code, **0 findings on the twelve verified recipes**. A checker that
-fires on correct code is one people switch off. `--self-test` proves all 41
-checks still fire; it caught three bugs in its own rules, including one where
-the `//` in `https://` was parsed as a comment.
+**Alpine has its own reviewer too** — `alpinejs-development/bin/review.py`, 30
+self-tested checks for v2-isms and the quiet traps (`x-if` off a `<template>`,
+`x-cloak` with no CSS, a `$watch` that writes to what it watches).
+
+**Both are calibrated in two directions.** Livewire: 9 errors on deliberately
+v3-style code, **0 findings on the twelve verified recipes**. Alpine: 7 errors on
+v2-era markup, **0 on correct Livewire+Alpine**. A checker that fires on correct
+code is one people switch off.
+
+`--self-test` proves every check still fires. It caught three bugs in the
+Livewire reviewer's own rules — including one where the `//` in `https://` was
+parsed as a comment, so the duplicated-Alpine check could never fire — and two
+false positives that only appeared when it was run against the verified
+recipes.
+
+### Verified against v2 and v3 too
+
+`detect.sh` and `scaffold.sh` are tested against real v2 and v3 project fixtures,
+not only v4. On a v3 project `scaffold.sh` **refuses** `--sfc`, `--mfc` and
+namespaces rather than emitting output that cannot work there, and `detect.sh`
+warns when the project's Livewire is newer than this skill's verification.
 
 ### Measured
 
@@ -241,10 +259,18 @@ Written from the primary sources, not from memory:
   [`alpinejs/alpine`](https://github.com/alpinejs/alpine). Version 3.16.3, which
   is what Livewire 4.x bundles.
 
-Coverage is verified by extracting the **API surface** from both trees — every
-directive, attribute, magic, global, component method, static, test assertion
-and lifecycle event — and diffing it against the skills. **Last audit
-2026-08-26: clean.**
+Coverage is verified three ways:
+
+1. **API-surface diff** — every directive, attribute, magic, global, component
+   method, static, test assertion and lifecycle event extracted from both
+   documentation trees and diffed against the skills. **Clean.**
+2. **Execution** — every recipe rendered and exercised against a real Livewire
+   install. **14 tests, 54 assertions, passing on v4.4.2.**
+3. **An independent model** — twelve high-risk claims fact-checked by Codex with
+   the documentation excerpts supplied inline. **12/12 supported, 0
+   contradicted.**
+
+**Last audit 2026-08-26.**
 
 A few signatures the documentation omits (`#[Authorize]`, `#[Transition]`,
 `renderIsland()`, `streamIsland()`) were read from the package source and are
