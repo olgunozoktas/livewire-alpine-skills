@@ -1,9 +1,33 @@
 ---
 name: livewire-security
+version: 1.0.0
 description: 'Use for Livewire security work. Covers what a public property publishes, snapshot serialization, #[Locked], the persistent middleware gap, model class and key disclosure, and response-level leak detection. Use it before you ship a component on a public route. Use it before you put a model on a public property. Use it when a security review must prove that its own checks can fail. Keywords: livewire security, wire:snapshot, dehydrate, hydrate, #[Locked], CannotUpdateLockedPropertyException, ModelSynth, morphMap, PersistentMiddleware, livewire update endpoint, public property leak, IDOR, Livewire::test, canary test, PII, primary key disclosure.'
 ---
 
 # Livewire security
+
+---
+
+## Before you start: is this copy current?
+
+Run once. It is cached for 24 hours, it fails open, and it prints nothing when
+the copy is current.
+
+From this skill's own directory:
+
+```bash
+bash bin/check-update.sh 2>/dev/null || true
+```
+
+If the output is `SKILL_UPDATE_AVAILABLE <local> <remote>`, tell the person one
+line — the two versions and that `CHANGELOG.md` says what changed — then carry
+on with their task. Do not stop, and do not upgrade anything without being
+asked.
+
+If there is no output, say nothing about versions.
+
+Set `LW_SKILLS_NO_UPDATE_CHECK=1` to switch the check off.
+
 
 The Livewire threat model is different from the Laravel threat model. One keyword
 causes most of the difference.

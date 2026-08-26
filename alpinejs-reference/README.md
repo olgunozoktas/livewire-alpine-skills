@@ -1,4 +1,4 @@
-# alpinejs-development
+# alpinejs-reference
 
 An [Agent Skill](https://agentskills.io/what-are-skills) for **Alpine.js v3** —
 written from all 55 files of the official documentation.

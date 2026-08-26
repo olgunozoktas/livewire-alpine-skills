@@ -1,9 +1,33 @@
 ---
 name: livewire-reference
+version: 1.0.0
 description: 'Use for all Laravel Livewire work. Covers Livewire v4 components, page routes, wire directives, PHP attributes, forms, validation, uploads, pagination, tables, modals, events, islands, performance, JavaScript, Alpine integration, Volt, Pest tests, upgrades, and debugging. Use it before you create, change, review, test, or optimize a Livewire component. It detects v2, v3, and v4 differences. Livewire v4 defaults differ from v2 and v3. Run bin/stack.sh first to load the paired Alpine skill map. Use Laravel Boost search-docs for facts newer than this snapshot. Keywords: livewire, wire:model, wire:click, wire:submit, wire:navigate, wire:poll, wire:loading, wire:key, wire:island, Livewire\Component, Route::livewire, #[Computed], #[Validate], #[Locked], #[On], #[Url], #[Lazy], #[Async], #[Authorize], $wire, Volt, SFC, form object, hydrate, morph, snapshot, Livewire::test.'
 ---
 
 # Livewire v4
+
+---
+
+## Before you start: is this copy current?
+
+Run once. It is cached for 24 hours, it fails open, and it prints nothing when
+the copy is current.
+
+From this skill's own directory:
+
+```bash
+bash bin/check-update.sh 2>/dev/null || true
+```
+
+If the output is `SKILL_UPDATE_AVAILABLE <local> <remote>`, tell the person one
+line — the two versions and that `CHANGELOG.md` says what changed — then carry
+on with their task. Do not stop, and do not upgrade anything without being
+asked.
+
+If there is no output, say nothing about versions.
+
+Set `LW_SKILLS_NO_UPDATE_CHECK=1` to switch the check off.
+
 
 Livewire builds dynamic, reactive interfaces in PHP. You write a class and a
 Blade template; Livewire handles the AJAX, the DOM patching, and the state
@@ -74,7 +98,7 @@ bash bin/eval.sh --compare      # score code quality objectively
 
 | Script | Use it when |
 |---|---|
-| **`stack.sh`** | **First, on any Livewire task.** Finds the `alpinejs-development` skill in any layout and prints both file maps, so one invocation covers Livewire *and* Alpine |
+| **`stack.sh`** | **First, on any Livewire task.** Finds the `alpinejs-reference` skill in any layout and prints both file maps, so one invocation covers Livewire *and* Alpine |
 | **`detect.sh`** | **First, always.** Prints the Livewire version, the component format already in use, the emoji setting, namespaces, routing style, whether Boost is installed, and whether Alpine is duplicated. Read-only |
 | **`scaffold.sh`** | Creating a component. Infers the format from what is on disk and from `config/livewire.php`, and **refuses** a v4-only flag on a v3 project instead of producing broken output |
 | **`review.py`** | Before handing back any component. Flags v3-isms, an unauthorized write, an `#[Async]` action mutating state, a `@foreach` with no `wire:key`, a method that overrides `Livewire\Component`. Exit code = error count, so it gates. `--self-test` proves all 41 checks still fire |
@@ -375,25 +399,9 @@ php ../livewire-security/bin/verify-facts.php <path-to-app>  # are the framework
 
 ## Artisan commands
 
-```shell
-php artisan make:livewire post.create           # single-file (default)
-php artisan make:livewire post.create --mfc     # multi-file directory
-php artisan make:livewire post.create --class   # v3-style class + view
-php artisan make:livewire pages::post.create    # into the pages:: namespace
-php artisan make:livewire post.create --test --js --css
-
-php artisan livewire:convert post.create        # SFC <-> MFC, auto-detected
-php artisan livewire:layout                     # resources/views/layouts/app.blade.php
-php artisan livewire:config                     # publish config/livewire.php
-php artisan livewire:form PostForm              # app/Livewire/Forms/PostForm.php
-php artisan livewire:stubs                      # publish generator stubs
-php artisan livewire:publish --assets           # publish JS to public/
-```
-
-Converting to single-file **deletes** a multi-file component's test file. You are
-prompted first.
-
----
+Moved to `references/reference.md`, under **Artisan commands**. Every
+`make:livewire` flag, the format converter, the layout and config publishers,
+the form generator and the stub publisher.
 
 ## What do you want to do?
 
@@ -409,7 +417,7 @@ prompted first.
 | Forms, validation, uploads, pagination, URL/session state | `references/forms-validation.md` |
 | Make something faster, or load later | `references/islands-performance.md` |
 | Write JavaScript, `$wire`, interceptors, scoped styles | `references/javascript.md` |
-| Use Alpine with Livewire | `references/alpine.md` (language itself: `alpinejs-development` skill) |
+| Use Alpine with Livewire | `references/alpine.md` (language itself: `alpinejs-reference` skill) |
 | Write tests | `references/testing.md` |
 | Understand hydration, morphing, synthesizers, middleware, CSP | `references/advanced.md` |
 | Upgrade v3 → v4 | `references/v3-to-v4.md` |
@@ -458,7 +466,7 @@ from the 4.x docs.
 | `references/forms-validation.md` | Forms, form objects, real-time validation, `#[Validate]` in full, `rules()`, custom messages, file uploads, pagination, URL query state, session properties |
 | `references/islands-performance.md` | Islands in full, lazy vs deferred loading, placeholders, bundling, `#[Isolate]`, loading states and `data-loading`, polling, `wire:navigate`, `@persist` |
 | `references/javascript.md` | Component scripts, `$wire` full API, JS actions, interceptors (action/message/request), `Livewire` global object, hooks, custom directives, `$this->js()`, scoped styles |
-| `references/alpine.md` | Alpine **inside Livewire**: `$wire`, entangle, morph vs Alpine state, which plugin to prefer, event crossover, bundling plugins. For the Alpine language itself use the **`alpinejs-development`** skill |
+| `references/alpine.md` | Alpine **inside Livewire**: `$wire`, entangle, morph vs Alpine state, which plugin to prefer, event crossover, bundling plugins. For the Alpine language itself use the **`alpinejs-reference`** skill |
 | `references/testing.md` | Pest setup for view-based components, every `Livewire::test()` method and assertion, browser testing with `Livewire::visit()` |
 | `references/advanced.md` | Hydration and snapshots, synthesizers, morphing in depth, component hooks, persistent middleware, downloads, package development, CSP, streaming, bundling |
 | `references/directives.md` | Every `wire:` directive in full — every modifier, `wire:target`'s four targeting forms, the client-side reactive trio (`wire:show`/`wire:text`/`wire:bind`) |
@@ -474,73 +482,14 @@ from the 4.x docs.
 
 ## Fast recipes
 
-**Page component with a route.**
-```php
-Route::livewire('/posts/{post}', 'pages::post.show');
-```
-```php
-<?php // resources/views/pages/post/⚡show.blade.php
-use Livewire\Component;
-use App\Models\Post;
+Moved to `references/recipes.md`, under **Fast idioms** at the top of that
+file. Six short patterns: a page component with a route, an expensive query,
+search that survives a refresh, the v4 loading state, a deferred region, and
+fire-and-forget tracking with `#[Async]`.
 
-new class extends Component {
-    public Post $post;   // route model binding, no mount() needed
-};
-```
-
-**Expensive query.** Never a public property — a `#[Computed]` method.
-```php
-#[Computed]
-public function posts()
-{
-    return Auth::user()->posts()->latest()->get();
-}
-```
-```blade
-@foreach ($this->posts as $post)
-    <div wire:key="{{ $post->id }}">{{ $post->title }}</div>
-@endforeach
-```
-Memoized for one request only. `unset($this->posts)` busts it after a write.
-
-**Search that survives a refresh.**
-```php
-#[Url]
-public $search = '';
-```
-```blade
-<input wire:model.live.debounce.250ms="search">
-```
-
-**Loading state, the v4 way.** Every element that triggers a request gets
-`data-loading` automatically — no `wire:target` needed.
-```blade
-<button wire:click="save" class="data-loading:opacity-50">
-    <span class="in-data-loading:hidden">Save</span>
-    <span class="not-in-data-loading:hidden">Saving…</span>
-</button>
-```
-
-**Defer an expensive region without a child component.**
-```blade
-@island(lazy: true)
-    @placeholder
-        <div class="animate-pulse h-32 bg-gray-200 rounded"></div>
-    @endplaceholder
-
-    <div>Revenue: {{ $this->revenue }}</div>
-@endisland
-```
-
-**Fire-and-forget tracking.** `#[Async]` runs in parallel instead of queueing.
-```php
-#[Async]
-public function trackClick() { Analytics::track(/* … */); }
-```
-Never mutate rendered state in an async action — parallel requests race and lose
-updates.
-
----
+They live beside the twelve complete components rather than in this file,
+because this file is read on every invocation and they are not needed on
+every invocation.
 
 ## Things that bite
 

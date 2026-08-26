@@ -6,7 +6,7 @@
 # a Laravel project you almost always want them together.
 #
 # Their relative positions differ by layout (installed / public repo / source
-# tree), and the installed entries are symlinks, so `../alpinejs-development`
+# tree), and the installed entries are symlinks, so `../alpinejs-reference`
 # is not reliable. This resolves it.
 #
 #   bash bin/stack.sh          # print the file map for both skills
@@ -25,16 +25,16 @@ LW_DIR="$(cd -P "$(dirname "$src")/.." && pwd)"
 find_alpine() {
     local c
     # 1. sibling of the real source dir, and of the invoked (possibly symlinked) dir
-    for c in "$LW_DIR/../alpinejs-development" \
-             "$(dirname "$(dirname "$0")")/../alpinejs-development" \
-             "$LW_DIR/../../misc/alpinejs-development" \
-             "$LW_DIR/../../alpinejs-development" \
-             "$HOME/.claude/skills/alpinejs-development" \
-             "$HOME/.config/claude/skills/alpinejs-development"; do
+    for c in "$LW_DIR/../alpinejs-reference" \
+             "$(dirname "$(dirname "$0")")/../alpinejs-reference" \
+             "$LW_DIR/../../misc/alpinejs-reference" \
+             "$LW_DIR/../../alpinejs-reference" \
+             "$HOME/.claude/skills/alpinejs-reference" \
+             "$HOME/.config/claude/skills/alpinejs-reference"; do
         [ -f "$c/SKILL.md" ] && { (cd "$c" && pwd); return 0; }
     done
     # 2. last resort: a bounded search near the skill root
-    c=$(find "$LW_DIR/../.." -maxdepth 3 -type d -name alpinejs-development 2>/dev/null | head -1)
+    c=$(find "$LW_DIR/../.." -maxdepth 3 -type d -name alpinejs-reference 2>/dev/null | head -1)
     [ -n "$c" ] && [ -f "$c/SKILL.md" ] && { (cd "$c" && pwd); return 0; }
     return 1
 }
@@ -64,7 +64,7 @@ echo
 
 if [ -z "$AL_DIR" ]; then
     echo "ALPINE     NOT FOUND"
-    echo "  The alpinejs-development skill is not installed beside this one."
+    echo "  The alpinejs-reference skill is not installed beside this one."
     echo "  Install it from the same source, or work from references/alpine.md,"
     echo "  which covers the integration but NOT the Alpine language itself."
     exit 1

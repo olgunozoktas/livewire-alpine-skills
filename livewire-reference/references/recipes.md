@@ -12,6 +12,82 @@ components; convert paths and format to match the project (see the top of
 
 ---
 
+
+## Fast idioms
+
+Short patterns, moved here from `SKILL.md` so the entry point stays small.
+The complete components follow below.
+
+**Page component with a route.**
+```php
+Route::livewire('/posts/{post}', 'pages::post.show');
+```
+```php
+<?php // resources/views/pages/post/⚡show.blade.php
+use Livewire\Component;
+use App\Models\Post;
+
+new class extends Component {
+    public Post $post;   // route model binding, no mount() needed
+};
+```
+
+**Expensive query.** Never a public property — a `#[Computed]` method.
+```php
+#[Computed]
+public function posts()
+{
+    return Auth::user()->posts()->latest()->get();
+}
+```
+```blade
+@foreach ($this->posts as $post)
+    <div wire:key="{{ $post->id }}">{{ $post->title }}</div>
+@endforeach
+```
+Memoized for one request only. `unset($this->posts)` busts it after a write.
+
+**Search that survives a refresh.**
+```php
+#[Url]
+public $search = '';
+```
+```blade
+<input wire:model.live.debounce.250ms="search">
+```
+
+**Loading state, the v4 way.** Every element that triggers a request gets
+`data-loading` automatically — no `wire:target` needed.
+```blade
+<button wire:click="save" class="data-loading:opacity-50">
+    <span class="in-data-loading:hidden">Save</span>
+    <span class="not-in-data-loading:hidden">Saving…</span>
+</button>
+```
+
+**Defer an expensive region without a child component.**
+```blade
+@island(lazy: true)
+    @placeholder
+        <div class="animate-pulse h-32 bg-gray-200 rounded"></div>
+    @endplaceholder
+
+    <div>Revenue: {{ $this->revenue }}</div>
+@endisland
+```
+
+**Fire-and-forget tracking.** `#[Async]` runs in parallel instead of queueing.
+```php
+#[Async]
+public function trackClick() { Analytics::track(/* … */); }
+```
+Never mutate rendered state in an async action — parallel requests race and lose
+updates.
+
+---
+
+---
+
 ## 1. CRUD create form with validation
 
 ```php

@@ -5,7 +5,7 @@ second copy breaks the page. Every Livewire component is an Alpine component
 underneath, so every Alpine directive and magic works inside one.
 
 > **For the Alpine language itself** — all 18 directives, the 9 magics, the
-> globals, the extension API and the 9 plugins — use the **`alpinejs-development`
+> globals, the extension API and the 9 plugins — use the **`alpinejs-reference`
 > skill**. This file covers only what changes when Alpine runs inside Livewire.
 
 ---

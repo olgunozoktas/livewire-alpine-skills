@@ -9,7 +9,7 @@
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-ALPINE_SKILL="$(cd "$SKILL_DIR/../../misc/alpinejs-development" 2>/dev/null && pwd || true)"
+ALPINE_SKILL="$(cd "$SKILL_DIR/../../misc/alpinejs-reference" 2>/dev/null && pwd || true)"
 WORK="${TMPDIR:-/tmp}/livewire-skill-refresh"
 LW_BRANCH="${LW_BRANCH:-4.x}"
 

@@ -1,11 +1,12 @@
 # Livewire v4 + Alpine.js — Agent Skills
 
 [![Skills](https://img.shields.io/badge/skills-3-0f172a)](#whats-inside)
-[![Self-tests](https://img.shields.io/badge/self--tests-105%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
+[![Self-tests](https://img.shields.io/badge/self--tests-111%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
 [![Recipes](https://img.shields.io/badge/recipes-executed%20%C2%B7%2014%20tests%2C%2054%20assertions-2ea44f)](#the-recipes-are-executed-not-just-written)
 [![Livewire](https://img.shields.io/badge/livewire-v4.4.2-fb70a9)](https://livewire.laravel.com)
 [![Alpine.js](https://img.shields.io/badge/alpine.js-v3-77c1d2)](https://alpinejs.dev)
-[![Lines](https://img.shields.io/badge/skill%20content-14,716%20lines-64748b)](#whats-inside)
+[![Entry point](https://img.shields.io/badge/loads%20on%20invoke-514%20lines-64748b)](#whats-inside)
+[![Depth](https://img.shields.io/badge/read%20on%20demand-8,416%20lines-64748b)](#whats-inside)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Three [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
@@ -16,20 +17,33 @@ the security half that Livewire's own defaults make easy to get wrong.
 Works with Claude Code, Codex, Cursor, Gemini CLI, and anything else that reads
 the `SKILL.md` format.
 
-| Skill | Lines | Covers |
-|---|---|---|
-| [`livewire-reference`](livewire-reference/) | 10,603 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
-| [`alpinejs-development`](alpinejs-development/) | 3,132 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
-| [`livewire-security`](livewire-security/) | 979 | What a component publishes, what a browser can change, and how to detect a leak |
+| Skill | Loads on invoke | Read on demand | Covers |
+|---|---|---|---|
+| [`livewire-reference`](livewire-reference/) | **514** | 8,416 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
+| [`alpinejs-reference`](alpinejs-reference/) | **250** | 2,646 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
+| [`livewire-security`](livewire-security/) | **324** | 244 | What a component publishes, what a browser can change, how to detect a leak |
 
-Each skill has its own README with the full file map. Line counts are the
-skill content — `README.md` excluded, so they do not move when this page does.
+**Only `SKILL.md` enters context when a skill is invoked.** The `references/`
+files are read on demand through a routing table inside it, and `bin/` is
+executed rather than read. So the entry point is 514 lines, not 10,000 — the
+depth is there when a task needs it and costs nothing when it does not.
 
-> **Renamed 2026-08-26.** `livewire-development` is now **`livewire-reference`**.
-> Laravel Boost ships its own skill under the old name, and an identical name
-> read as a replacement for it. Update any copy you installed:
-> `rm -rf ~/.claude/skills/livewire-development` and copy `livewire-reference`
-> in its place. Nothing else changed.
+The always-loaded cost is smaller still: an agent sees only each skill's
+`description`, which is about 220 tokens for the largest of the three.
+
+> **Renamed in 1.0.0.** `livewire-development` → **`livewire-reference`**, and
+> `alpinejs-development` → **`alpinejs-reference`**. Laravel Boost ships its own
+> skill named `livewire-development`, and an identical name read as a
+> replacement for it; the Alpine rename follows for consistency. To update a
+> copy you installed:
+>
+> ```bash
+> rm -rf ~/.claude/skills/livewire-development ~/.claude/skills/alpinejs-development
+> cp -R livewire-reference alpinejs-reference livewire-security ~/.claude/skills/
+> ```
+>
+> No stub remains at either old name — a stub would restore the collision.
+> [`CHANGELOG.md`](CHANGELOG.md) has the rest.
 
 **Every badge above is a local measurement, not a CI run.** This repository has
 no GitHub Actions workflow. The self-test counts come from the three commands in
@@ -101,9 +115,9 @@ What the skills are actually for. Each names the file that answers it.
 
 ```bash
 git clone https://github.com/olgunozoktas/livewire-alpine-skills.git /tmp/lw-skills
-cp -R /tmp/lw-skills/livewire-reference   ~/.claude/skills/
-cp -R /tmp/lw-skills/alpinejs-development   ~/.claude/skills/
-cp -R /tmp/lw-skills/livewire-security      ~/.claude/skills/
+cp -R /tmp/lw-skills/livewire-reference  ~/.claude/skills/
+cp -R /tmp/lw-skills/alpinejs-reference  ~/.claude/skills/
+cp -R /tmp/lw-skills/livewire-security   ~/.claude/skills/
 ```
 
 Per-project instead of global: copy into `.claude/skills/` in the repo.
@@ -124,7 +138,7 @@ bash bin/stack.sh     # finds the Alpine skill and prints both file maps
 It resolves the pairing in any layout (installed, this repo, or a source tree,
 symlinks included) and shows which half answers which question. They stay two
 skills because Alpine is also used with Rails, Django and Hotwire — invoke
-`alpinejs-development` directly for those.
+`alpinejs-reference` directly for those.
 
 ### Other agents
 
@@ -203,7 +217,7 @@ Livewire is newer than this skill's verification.
 | File | Covers |
 |---|---|
 | `SKILL.md` | Version + convention preflight, the v3→v4 correction table, component anatomy, the mental model, security rules, task routing |
-| `references/recipes.md` | **Twelve complete components** — CRUD, search/filter/sort/paginate, modal, upload with progress, infinite scroll, wizard, optimistic UI, dependent selects, Echo, form objects, tests |
+| `references/recipes.md` | **Fast idioms**, then **twelve complete components** — CRUD, search/filter/sort/paginate, modal, upload with progress, infinite scroll, wizard, optimistic UI, dependent selects, Echo, form objects, tests |
 | `references/troubleshooting.md` | **Symptom → cause → fix** table, the three most common bugs in depth, debugging tools, reading the network tab |
 | `references/version-guide.md` | Detecting the installed version, every v3 difference, what does not exist before v4, why v2 is out of scope |
 | `references/directives.md` | Every `wire:` directive — every modifier, `wire:target`'s four targeting forms |
@@ -224,6 +238,7 @@ Livewire is newer than this skill's verification.
 | `bin/review.py` | 21 checks for v3-isms, security holes and known traps |
 | `bin/verify-recipes.sh` | Scaffolds a throwaway app and **runs every recipe**. 14 tests, 54 assertions |
 | `bin/refresh.sh` | Re-audits the skill against the current docs. Read-only |
+| `bin/check-update.sh` | Reports a newer release of these skills. Fails open on every path, caches 24h, one unauthenticated GET. `--self-test` proves it can speak and stay silent |
 | `bin/eval.sh` | Scores code quality objectively |
 | `tests/` | The verification harness and the eval baseline |
 
@@ -236,7 +251,7 @@ Livewire is newer than this skill's verification.
 | `bin/scan.php` | 7 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator, a `#[Url]` identifier without `#[Locked]`, an untyped public property, a `#[Computed(cache: true)]` with no key. No bootstrap, no database, no autoloader |
 | `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the computed cache keys, the upload defaults. 16 statements. Run it after an upgrade |
 
-### `alpinejs-development`
+### `alpinejs-reference`
 
 | File | Covers |
 |---|---|
@@ -271,7 +286,7 @@ bash bin/eval.sh --compare          # score code quality objectively
 | `refresh.sh` | Re-audits against the current documentation |
 | `eval.sh` | Scores a directory. `--compare` for baseline-vs-skill |
 
-**Alpine has its own reviewer too** — `alpinejs-development/bin/review.py`, 14
+**Alpine has its own reviewer too** — `alpinejs-reference/bin/review.py`, 14
 rules proven by 30 self-test cases, for v2-isms and the quiet traps (`x-if` off a `<template>`,
 `x-cloak` with no CSS, a `$watch` that writes to what it watches).
 
@@ -338,16 +353,20 @@ missed, because both fail at runtime rather than at review:
 Every badge above is a number you can reproduce. There is no CI run behind them.
 
 ```bash
-php    livewire-security/bin/scan.php        --self-test   # 22 checks
-python3 livewire-reference/bin/review.py     --self-test   # 53 checks
-python3 alpinejs-development/bin/review.py   --self-test   # 30 checks
-                                                           # 105 total
+php     livewire-security/bin/scan.php          --self-test   # 22 checks
+php     livewire-security/bin/check-update.sh   --self-test   #  6 checks
+python3 livewire-reference/bin/review.py        --self-test   # 53 checks
+python3 alpinejs-reference/bin/review.py        --self-test   # 30 checks
+#                                                              111 total
 
 # Are the security skill's statements still true of the installed Livewire?
 php livewire-security/bin/verify-facts.php <path-to-a-laravel-app>   # 16 statements
 
 # The recipe gate. Scaffolds a throwaway Laravel app and runs every recipe.
 bash livewire-reference/bin/verify-recipes.sh                        # 14 tests, 54 assertions
+
+# The update check, which must be able to speak AND stay silent.
+bash livewire-security/bin/check-update.sh --self-test                # 6 checks
 ```
 
 The first three need no network and no Laravel install. `verify-facts.php` needs

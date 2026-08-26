@@ -5,7 +5,7 @@ written from all 98 files of the official documentation, with recipes that are
 **executed against a real Livewire install** rather than only transcribed.
 
 **This is the entry point for the whole stack.** Livewire bundles Alpine, so real
-work touches both — `bash bin/stack.sh` locates the paired `alpinejs-development`
+work touches both — `bash bin/stack.sh` locates the paired `alpinejs-reference`
 skill and prints both file maps, so one invocation covers Livewire *and* Alpine.
 
 ---
@@ -65,7 +65,7 @@ bash bin/eval.sh --compare      # score code quality objectively
 
 **`stack.sh`** is what makes one invocation enough. Livewire bundles Alpine, so
 real work touches both, but they are two skills. This locates the paired
-`alpinejs-development` skill — in any layout, symlinks followed — and prints both
+`alpinejs-reference` skill — in any layout, symlinks followed — and prints both
 file maps with a table of which half answers which question. When Alpine is not
 installed it says so and falls back to `references/alpine.md`, which covers the
 integration but not the language.

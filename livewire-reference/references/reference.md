@@ -2,6 +2,31 @@
 
 ---
 
+
+## Artisan commands
+
+```shell
+php artisan make:livewire post.create           # single-file (default)
+php artisan make:livewire post.create --mfc     # multi-file directory
+php artisan make:livewire post.create --class   # v3-style class + view
+php artisan make:livewire pages::post.create    # into the pages:: namespace
+php artisan make:livewire post.create --test --js --css
+
+php artisan livewire:convert post.create        # SFC <-> MFC, auto-detected
+php artisan livewire:layout                     # resources/views/layouts/app.blade.php
+php artisan livewire:config                     # publish config/livewire.php
+php artisan livewire:form PostForm              # app/Livewire/Forms/PostForm.php
+php artisan livewire:stubs                      # publish generator stubs
+php artisan livewire:publish --assets           # publish JS to public/
+```
+
+Converting to single-file **deletes** a multi-file component's test file. You are
+prompted first.
+
+---
+
+---
+
 ## PHP attributes and `wire:` directives
 
 Both moved to dedicated files so each entry could be documented properly rather

@@ -1,9 +1,33 @@
 ---
-name: alpinejs-development
+name: alpinejs-reference
+version: 1.0.0
 description: 'Use for all Alpine.js v3 work. Covers x-data, x-show, x-if, x-for, x-model, x-transition, x-bind, x-on, magic properties, stores, custom directives, CSP, official plugins, and Livewire integration. Use it before you create, change, review, or debug Alpine behavior in Blade, Livewire, Rails, Django, Hotwire, or plain HTML. Use livewire-reference as the entry point inside Laravel Livewire projects. Keywords: alpine, alpinejs, x-data, x-init, x-show, x-if, x-for, x-model, x-modelable, x-bind, x-on, x-text, x-html, x-effect, x-ref, x-cloak, x-ignore, x-teleport, x-transition, x-id, $refs, $store, $watch, $dispatch, $nextTick, Alpine.data, Alpine.store, Alpine.bind, Alpine.directive, Alpine.reactive.'
 ---
 
 # Alpine.js v3
+
+---
+
+## Before you start: is this copy current?
+
+Run once. It is cached for 24 hours, it fails open, and it prints nothing when
+the copy is current.
+
+From this skill's own directory:
+
+```bash
+bash bin/check-update.sh 2>/dev/null || true
+```
+
+If the output is `SKILL_UPDATE_AVAILABLE <local> <remote>`, tell the person one
+line — the two versions and that `CHANGELOG.md` says what changed — then carry
+on with their task. Do not stop, and do not upgrade anything without being
+asked.
+
+If there is no output, say nothing about versions.
+
+Set `LW_SKILLS_NO_UPDATE_CHECK=1` to switch the check off.
+
 
 Alpine is fifteen attributes, six properties and three methods. It gives you
 reactive, declarative behavior directly in markup, with no build step and no
