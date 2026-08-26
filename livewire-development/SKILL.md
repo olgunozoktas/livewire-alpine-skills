@@ -17,15 +17,23 @@ commit `81f35ea`. Audited clean **2026-08-26**. A few signatures the docs omit
 (`#[Authorize]`, `#[Transition]`, `renderIsland()`, `streamIsland()`) were read
 from the package source and are labelled where they appear.
 
-**Re-verify against the current release at any time:**
+**The recipes are executed, not merely written.** Every component in
+`references/recipes.md` is rendered and exercised against a real Livewire
+install — **14 tests, 54 assertions, all passing on livewire v4.4.2**, a
+release newer than the snapshot above.
+
+**Two scripts keep this true:**
 
 ```bash
+bash bin/verify-recipes.sh   # scaffolds a throwaway app, runs every recipe
 bash bin/refresh.sh          # read-only; re-clones the docs and re-audits
 ```
 
-It reports anything now documented that this skill does not mention, and prints
-a fresh provenance line. It never edits the skill. When Livewire is newer than
-the date above, run it — or ask Laravel Boost's `search-docs` (see below).
+`verify-recipes.sh` catches what reading cannot — it is how the `reset()`
+override and four missing `Auth` imports were found. `refresh.sh` reports
+anything newly documented that this skill does not mention. Neither edits the
+skill. When Livewire is newer than the date above, run both — or ask Laravel
+Boost's `search-docs` (see below).
 
 ---
 

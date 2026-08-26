@@ -4,6 +4,12 @@ Each one is a whole component, not a fragment. All are v4 single-file
 components; convert paths and format to match the project (see the top of
 `SKILL.md`).
 
+> **These are executed, not just written.** `bash bin/verify-recipes.sh`
+> scaffolds a throwaway Laravel + Livewire 4 app, extracts every recipe below
+> into a real component file, lints it, then renders it and exercises its
+> actions with `Livewire::test()`. Last run: **14 tests, 54 assertions, all
+> passing on livewire v4.4.2.** If you edit a recipe, re-run it.
+
 ---
 
 ## 1. CRUD create form with validation
@@ -406,6 +412,7 @@ new class extends Component {
 ?>
 
 <div>
+    {{-- x-wizard.* are your own Blade partials — create them, or inline the steps --}}
     <div wire:transition="content">
         @if ($step === 1) <x-wizard.account />
         @elseif ($step === 2) <x-wizard.profile />

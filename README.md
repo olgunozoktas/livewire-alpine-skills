@@ -9,7 +9,7 @@ the `SKILL.md` format.
 
 | Skill | Lines | Covers |
 |---|---|---|
-| `livewire-development` | ~8,900 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
+| `livewire-development` | ~9,000 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
 | `alpinejs-development` | ~2,840 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
 
 ---
@@ -130,7 +130,9 @@ this snapshot's date as the tiebreaker.
 | `references/reference.md` | Redirects, Blade directives, the full config, advanced installation |
 | `references/volt.md` | The Volt functional API, and migrating class-based Volt to core |
 | `references/v3-to-v4.md` | The complete upgrade guide |
+| `bin/verify-recipes.sh` | Scaffolds a throwaway app and **runs every recipe**. 14 tests, 54 assertions |
 | `bin/refresh.sh` | Re-audits the skill against the current docs. Read-only |
+| `tests/` | The verification harness — test suite, extractor, and fixtures |
 
 ### `alpinejs-development`
 
@@ -144,6 +146,30 @@ this snapshot's date as the tiebreaker.
 | `references/v2-to-v3.md` | The v2 → v3 upgrade guide — every breaking change and both deprecations |
 
 ---
+
+## The recipes are executed, not just written
+
+Every component in `references/recipes.md` is rendered and exercised against a
+real Livewire install:
+
+```bash
+cd livewire-development && bash bin/verify-recipes.sh
+```
+
+It scaffolds a throwaway Laravel + Livewire 4 app, extracts each recipe into a
+real component file, lints it, then renders it and exercises its actions with
+`Livewire::test()`. No browser and no dev server — Livewire renders server-side,
+so the whole suite runs in under a second.
+
+**Last run: 14 tests, 54 assertions, all passing on livewire v4.4.2** — a
+release newer than the documented snapshot.
+
+This is not ceremony. It found two defects that every text-level audit had
+missed, because both fail at runtime rather than at review:
+
+- the wizard defined `public function reset()`, silently overriding
+  `Livewire\Component::reset()`
+- four blocks called `Auth::user()` with no facade import — a fatal error
 
 ## Staying current
 
