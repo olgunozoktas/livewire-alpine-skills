@@ -4,8 +4,9 @@ An [Agent Skill](https://agentskills.io/what-are-skills) for **Laravel Livewire 
 written from all 98 files of the official documentation, with recipes that are
 **executed against a real Livewire install** rather than only transcribed.
 
-Pairs with the `alpinejs-development` skill. Livewire bundles Alpine, so most
-real work touches both.
+**This is the entry point for the whole stack.** Livewire bundles Alpine, so real
+work touches both — `bash bin/stack.sh` locates the paired `alpinejs-development`
+skill and prints both file maps, so one invocation covers Livewire *and* Alpine.
 
 ---
 

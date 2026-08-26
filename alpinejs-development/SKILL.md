@@ -77,6 +77,20 @@ Two more worth internalizing:
 
 ---
 
+## Working in a Laravel project?
+
+Invoke **`livewire-development`** instead — it is the entry point for the whole
+stack and pulls this skill in:
+
+```bash
+bash bin/stack.sh          # in the livewire-development skill
+```
+
+This skill stands alone for Alpine outside Laravel — Rails, Django, Hotwire, or
+plain HTML.
+
+---
+
 ## Tool — run it, do not eyeball it
 
 ```bash

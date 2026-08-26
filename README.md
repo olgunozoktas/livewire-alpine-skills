@@ -79,6 +79,21 @@ Per-project instead of global: copy into `.claude/skills/` in the repo.
 Restart the session. The assistant loads a skill on its own when the task
 matches; `/livewire-development` invokes it explicitly.
 
+### One invocation covers both
+
+Livewire bundles Alpine, so real work touches both. From a Laravel project you
+only need to invoke **`livewire-development`** — it is the entry point for the
+whole stack:
+
+```bash
+bash bin/stack.sh     # finds the Alpine skill and prints both file maps
+```
+
+It resolves the pairing in any layout (installed, this repo, or a source tree,
+symlinks included) and shows which half answers which question. They stay two
+skills because Alpine is also used with Rails, Django and Hotwire — invoke
+`alpinejs-development` directly for those.
+
 ### Other agents
 
 Copy the same two directories into whatever skills directory your tool reads —

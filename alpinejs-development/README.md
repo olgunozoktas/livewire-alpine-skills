@@ -5,8 +5,11 @@ written from all 55 files of the official documentation.
 
 Alpine is not only a Laravel tool. It runs with Blade, Rails, Django, Hotwire and
 any HTML-over-the-wire stack, so the language reference lives here rather than
-inside a Laravel skill. Pairs with `livewire-development`, which covers the
-integration half.
+inside a Laravel skill.
+
+**In a Laravel project, invoke `livewire-development` instead** — it is the entry
+point for the whole stack and pulls this skill in via `bin/stack.sh`. Use this
+one directly for Alpine outside Laravel.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: livewire-development
-description: 'Expert knowledge of Laravel Livewire v4 (livewire.laravel.com/docs/4.x) — the deep reference, with complete working recipes and a symptom-to-fix troubleshooting guide. Use for ANY Livewire work: creating or editing components, wire:* directives, PHP attributes, forms, validation, file uploads, pagination, search/filter/sort tables, modals, wizards, infinite scroll, optimistic UI, events, Laravel Echo broadcasting, lifecycle hooks, nesting, slots, islands, lazy/deferred loading, loading states, wire:navigate SPA mode, Alpine/$wire integration, JavaScript interceptors, scoped styles, synthesizers, component hooks, CSP, testing with Pest, Volt, or debugging a broken component. ALSO use it to detect which Livewire version a project is on — it covers v3 differences and what does not exist before v4. Livewire v4 changed its DEFAULTS in ways that contradict v2/v3 training data: single-file components are the default, Route::livewire() replaces Route::get(), wire:model modifiers changed meaning, and only Volt''s class-based half moved into core. Read this skill BEFORE writing any Livewire code. Complements Laravel Boost''s skill of the same name — use Boost''s search-docs for anything newer than this snapshot. Keywords: livewire, wire:model, wire:click, wire:submit, wire:navigate, wire:poll, wire:loading, wire:key, wire:target, wire:island, wire:sort, wire:intersect, wire:ref, wire:stream, wire:bind, wire:text, wire:current, wire:dirty, Livewire\Component, mount(), #[Computed], #[Validate], #[Locked], #[On], #[Url], #[Lazy], #[Async], #[Json], #[Authorize], #[Transition], @island, @persist, @placeholder, @assets, @teleport, $wire, $refresh, $dispatch, data-loading, data-current, Volt, single-file component, SFC, MFC, form object, hydrate, dehydrate, morph, snapshot, synthesizer, Livewire::test, wire:key error, snapshot missing, multiple instances of Alpine.'
+description: 'Expert knowledge of Laravel Livewire v4 (livewire.laravel.com/docs/4.x) — the deep reference, with complete working recipes and a symptom-to-fix troubleshooting guide. Use for ANY Livewire work: creating or editing components, wire:* directives, PHP attributes, forms, validation, file uploads, pagination, search/filter/sort tables, modals, wizards, infinite scroll, optimistic UI, events, Laravel Echo broadcasting, lifecycle hooks, nesting, slots, islands, lazy/deferred loading, loading states, wire:navigate SPA mode, Alpine/$wire integration, JavaScript interceptors, scoped styles, synthesizers, component hooks, CSP, testing with Pest, Volt, or debugging a broken component. ALSO use it to detect which Livewire version a project is on — it covers v3 differences and what does not exist before v4. Livewire v4 changed its DEFAULTS in ways that contradict v2/v3 training data: single-file components are the default, Route::livewire() replaces Route::get(), wire:model modifiers changed meaning, and only Volt''s class-based half moved into core. Read this skill BEFORE writing any Livewire code. This is the single entry point for the Livewire stack: run bin/stack.sh and it loads the paired alpinejs-development skill too, so one invocation covers Livewire AND Alpine. Complements Laravel Boost''s skill of the same name — use Boost''s search-docs for anything newer than this snapshot. Keywords: livewire, wire:model, wire:click, wire:submit, wire:navigate, wire:poll, wire:loading, wire:key, wire:target, wire:island, wire:sort, wire:intersect, wire:ref, wire:stream, wire:bind, wire:text, wire:current, wire:dirty, Livewire\Component, mount(), #[Computed], #[Validate], #[Locked], #[On], #[Url], #[Lazy], #[Async], #[Json], #[Authorize], #[Transition], @island, @persist, @placeholder, @assets, @teleport, $wire, $refresh, $dispatch, data-loading, data-current, Volt, single-file component, SFC, MFC, form object, hydrate, dehydrate, morph, snapshot, synthesizer, Livewire::test, wire:key error, snapshot missing, multiple instances of Alpine.'
 ---
 
 # Livewire v4
@@ -30,12 +30,40 @@ Boost's `search-docs` (see below).
 
 ---
 
+## This skill is the entry point for BOTH halves
+
+Livewire bundles Alpine, so real work touches both. They are separate skills
+because Alpine is also used with Rails, Django and Hotwire — but **from a Laravel
+project, invoking this one is enough**:
+
+```bash
+bash bin/stack.sh          # locates the Alpine skill and prints both file maps
+```
+
+**Do this once at the start of any Livewire task.** It resolves the Alpine skill
+whatever the layout — installed, public repo, or source tree, symlinks
+included — and tells you which half answers which question. Then read from
+either skill's `references/` directly; no second invocation needed.
+
+If `stack.sh` reports Alpine as NOT FOUND, that skill is not installed. Fall back
+to `references/alpine.md`, which covers Alpine **inside** Livewire (`$wire`,
+morph vs Alpine state, entangle, which plugin to prefer) but **not** the Alpine
+language itself.
+
+**Rough split:** server state, `wire:` directives and PHP attributes are this
+skill. `x-data`, `x-model`, `x-for`, `$refs`, `$store` and the plugins are the
+Alpine skill. `$wire` and the morph interplay sit in `references/alpine.md`
+here.
+
+---
+
 ## Tools — run these, do not guess
 
 This skill ships scripts. They read the real project and the real docs, so you
 are never inferring what a static file cannot know.
 
 ```bash
+bash bin/stack.sh               # load BOTH halves of the stack (run this first)
 bash bin/detect.sh              # what does THIS project actually do?
 bash bin/scaffold.sh post.create   # create in the project's own conventions
 python3 bin/review.py <file>    # v3-isms, security holes, known traps
@@ -46,6 +74,7 @@ bash bin/eval.sh --compare      # score code quality objectively
 
 | Script | Use it when |
 |---|---|
+| **`stack.sh`** | **First, on any Livewire task.** Finds the `alpinejs-development` skill in any layout and prints both file maps, so one invocation covers Livewire *and* Alpine |
 | **`detect.sh`** | **First, always.** Prints the Livewire version, the component format already in use, the emoji setting, namespaces, routing style, whether Boost is installed, and whether Alpine is duplicated. Read-only |
 | **`scaffold.sh`** | Creating a component. Infers the format from what is on disk and from `config/livewire.php`, and **refuses** a v4-only flag on a v3 project instead of producing broken output |
 | **`review.py`** | Before handing back any component. Flags v3-isms, an unauthorized write, an `#[Async]` action mutating state, a `@foreach` with no `wire:key`, a method that overrides `Livewire\Component`. Exit code = error count, so it gates. `--self-test` proves all 41 checks still fire |
