@@ -452,9 +452,29 @@ block; the next user routed to that worker gets the consequence.
 ],
 ```
 
-**Verified in source, NOT verified against a running Octane worker.** Octane was
-not installed where this was read. Confirm it in your own environment before you
-rely on either the consequence or the fix.
+**Verified in source AND executed.** `bin/octane-probe.php` runs against any
+Laravel app with Livewire and demonstrates the mechanism in one process:
+
+```
+== 1. the TESTING renderer ==
+   before Livewire::test(): true
+   after  Livewire::test(): false   <- SupportTesting calls flushState()
+
+== 2. the PRODUCTION render path ==
+   before Livewire::mount(): true
+   after  Livewire::mount(): true   <- nothing flushed it
+```
+
+A completed production render leaves the state set; the testing renderer clears
+it. That contrast is the whole finding.
+
+**Not verified against a live Octane worker**, because Octane was not installed
+where this was read. What the probe proves is the precondition Octane depends
+on — that a finished request does not reset the state. Run it yourself:
+
+```bash
+php artisan tinker --execute="require 'bin/octane-probe.php';"
+```
 
 ## 13 · A valid Livewire request has no rate limit
 

@@ -277,7 +277,7 @@ you make a conclusion. Do this before you report a defect in another branch.
 
 ---
 
-## The two tools
+## The three tools
 
 ```bash
 php bin/scan.php <path-to-app>          # 6 checks. Exit code is the finding count
@@ -285,11 +285,16 @@ php bin/scan.php --self-test            # prove that every rule fires
 
 php bin/verify-facts.php <path-to-app>  # are the statements above still true?
 php bin/verify-facts.php --help         # (any bad path prints the usage)
+
+php artisan tinker --execute="require 'bin/octane-probe.php';"   # see item 12 happen
 ```
 
-Both tools read source text. They need no bootstrap, no database and no
-autoloader. They therefore run in CI, in a hook, and in a checkout without
-installed dependencies. A reflection tool cannot run in those places.
+The first two read source text. They need no bootstrap, no database and no
+autoloader, so they run in CI, in a hook, and in a checkout without installed
+dependencies. A reflection tool cannot run in those places.
+
+The probe is the exception and needs a booted application, which is why it is
+run through `tinker` rather than called directly.
 
 ### `scan.php`
 
@@ -317,6 +322,19 @@ skill then gives confident wrong advice, and no person notices.
 This tool applies the rule above to the skill. It reads the installed
 `vendor/livewire/livewire` and fails when a statement no longer holds. It checks
 27 statements. Run it after a Livewire upgrade.
+
+### `octane-probe.php`
+
+It demonstrates the Octane state finding rather than asserting it. In one
+process it sets a static flag, runs `Livewire::test()` and shows the flag
+cleared, then sets it again, runs the production `Livewire::mount()` path and
+shows the flag **still set**.
+
+That contrast is the finding: the testing renderer calls `flushState()` and the
+production path does not. It flushes the state it touched before it exits, and
+writes nothing.
+
+### Back to `verify-facts.php`
 
 The most important check is the one for the persistent middleware list. The skill
 tells a reader that a permission check does **not** run again on an update
