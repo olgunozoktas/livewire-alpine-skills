@@ -1,10 +1,136 @@
 # Changelog
 
-The version in `VERSION` covers all three skills. They are released together,
+The version in `VERSION` covers all four skills. They are released together,
 because a reader who copies one usually copies the others.
 
 `bin/check-update.sh` compares a local copy against this repository and reports
 one line when a newer release exists. It stays silent in every other case.
+
+---
+
+## 1.2.0 — 2026-08-26
+
+### Added — a fourth skill, `livewire-performance`
+
+What one Livewire request costs, how to measure it, and which fix matches which
+measurement. It refuses to give a list of tips, because which cost dominates
+changes with the component.
+
+- `references/measuring.md` — three numbers and the code that produces them:
+  snapshot bytes, queries per update request, render milliseconds. One of them
+  is a browser console paste that needs no package and no environment.
+- `references/bottlenecks.md` — ten symptoms, each with its cause, the
+  measurement that confirms it, and the fix.
+- `bin/scan-performance.php` — 6 static checks, calibrated in both directions.
+  A debounced live binding, a `.blur` binding, a select, an interval on the
+  poll, and a `#[Locked]` array all stay silent.
+
+Two costs in it are undocumented and were read in the source:
+
+- **A model property is a query on every request, through the WRITE
+  connection.** `ModelSynth.php:84` uses
+  `newQueryForRestoration($key)->useWritePdo()->firstOrFail()`, so an
+  application with read replicas sends every restoration to the primary.
+- **On PHP 8.4 that query is deferred; below 8.4 it always runs.**
+  `SupportModels/IsLazy.php:36` short-circuits `newLazyProxy` on older PHP. This
+  is a measurable gain from a PHP upgrade with no code change.
+
+### Added — two transport findings in `livewire-security`
+
+- **The checksum-failure limiter is keyed on the client IP alone.**
+  `Checksum.php:11,12,78` — ten bad snapshots answer 429 to every Livewire
+  request from that address for ten minutes, and the check runs *before* the
+  current request's own checksum. Behind NAT, CGNAT or an untrusted proxy, one
+  address is many people. There is no setting: both values are
+  `protected static`. **Undocumented.**
+- **A snapshot is a bearer object with no owner and no expiry.** The HMAC key is
+  the application key and nothing else is mixed in, so a validly signed snapshot
+  is accepted from any client until the key rotates. The checksum DOES cover
+  `memo.id` and `memo.name`, so a snapshot cannot be presented as a different
+  component. Documented as integrity; the consequence is not stated.
+
+### Verified safe, and recorded so nobody re-investigates
+
+The checksum covers `data` and the whole `memo`, uses `hash_equals`, and the
+`memo.children` exclusion is bounded by two regexes that permit only
+alphanumerics and hyphens. All thirteen `runningUnitTests()` branches are
+unreachable in production — with one deployment caveat: shipping with
+`APP_ENV=testing` disables the checksum rate limiter and switches uploaded-file
+mime, size and hash to client-supplied metadata. `SupportChecksumErrorDebugging`
+begins with an unconditional `return;`, so it writes nothing. There is no
+framework-introduced open redirect, and no path traversal in downloads.
+
+### Added — the Octane finding, which is the largest one here
+
+**Livewire ships no Octane integration, and the word appears once in 99
+documentation files** — in `wire-stream.md`, saying `wire:stream` does not
+support it.
+
+About twenty feature classes hold request-scoped and user-scoped data in
+`static` properties. One event clears them, `LivewireManager.php:293`, and
+`flushState()` is called in exactly two places — **both the testing renderers**,
+`SupportTesting/InitialRender.php:37` and `SubsequentRender.php:40`. The
+production update path never calls it, and the package registers no Octane
+listener.
+
+Under PHP-FPM the process dies and nothing is wrong. Under Octane the worker is
+reused, and two consequences follow, each traced to its property:
+
+- `SupportScriptsAndAssets.php:11-17` keeps `$alreadyRunAssetKeys` so each
+  `@assets` block is emitted once. On a later request in the same worker the
+  block reads as already run and **the asset is omitted from another user's
+  page**.
+- `SupportRedirects.php:15` keeps `$atLeastOneMountedComponentHasRedirected`,
+  and `:20-24` uses it to decide whether to clear the flash bag. Once any
+  request redirects, the flag sticks and later requests **stop clearing flash
+  data**.
+
+**Verified in source, NOT verified against a running Octane worker.** Octane was
+not installed where this was read, and the skill says so where the finding
+appears.
+
+### Added — four data-binding findings, one of which is the easiest to get wrong
+
+- **Real-time `#[Validate]` does not gate the write, and the action still
+  runs.** The value is set at `HandleComponents.php:451`; the validation
+  callback runs after, at `:399-410`; the exception is deliberately swallowed
+  (`Wrapped.php:22-34` with `SupportValidation.php:69-76` calling
+  `stopPropagation()`); and `callMethods()` then runs at `:220-223`. One request
+  carrying both an update and a call persists the invalid value. The docs say
+  *"Property is validated every time it's updated"*, which is true and is not
+  protection. **Documented; the consequence is not stated.**
+- **`#[Reactive]` is enforced at dehydrate**, which is after the action.
+  `BaseReactive.php:58-65`. The request aborts, but the side effect already
+  happened. **Undocumented.**
+- **`#[Locked]` cannot lock one key of an array** — it matches the whole subtree
+  (`SupportAttributes.php:42`). A sensitive key beside a bound key in one array
+  is writable. The blocking is documented; the granularity is not.
+- **Publishing one `payload` limit silently disables the other three.**
+  `mergeConfigFrom` is a shallow merge (`LivewireServiceProvider.php:65`), so
+  `'payload' => ['max_size' => null]` replaces the array and leaves
+  `max_nesting_depth`, `max_calls` and `max_components` undefined — which each
+  guard reads as "off". None of the four appears in the documentation at all.
+
+### Verified sound, and recorded so nobody re-investigates
+
+An update can never choose its own synthesizer or class — `HandleSynths.php`
+pairs every untrusted value with meta from the authenticated snapshot, with the
+trust boundary written out in comments at `:98-100` and `:113-117`. Base-class
+internals are not writable (`BaseUtils.php:28-39`), so `$id` is safe. There are
+exactly four magic actions and the server treats them as no-ops
+(`SupportMagicActions.php:11-27`) — the real boundary is the public-property and
+public-method check, never that list. `#[Session]` looks like the computed-cache
+bug and is not: the key omits the user in the same way, but the store is the
+per-user session (`BaseSession.php:45-52`). Islands cannot be forged — the token
+is compiled into the parent view and a client-supplied name is filtered against
+the component's server-known list. `#[Async]`, `#[Isolate]` and `#[Renderless]`
+carry identical auth. Lifecycle hooks are not directly callable
+(`SupportLifecycleHooks.php:98-134`).
+
+### Changed
+
+- `verify-facts.php` holds 27 statements, up from 19.
+- Self-tests total 124, up from 111.
 
 ---
 

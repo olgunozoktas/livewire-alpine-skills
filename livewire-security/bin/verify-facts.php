@@ -115,6 +115,14 @@ $checks = [
     checkFile($vendor, 'src/Mechanisms/HandleComponents/Checksum.php', 'hash_hmac',
         'The snapshot checksum is still an HMAC, so a browser cannot change a model key'),
 
+    // The checksum-failure limiter is still keyed on the client IP alone.
+    checkFile($vendor, 'src/Mechanisms/HandleComponents/Checksum.php', "request()->ip()",
+        'The checksum-failure rate limiter is still keyed on the client IP alone'),
+
+    // The checksum still covers the memo, so a snapshot cannot change component.
+    checkFile($vendor, 'src/Mechanisms/HandleComponents/Checksum.php', 'hash_equals',
+        'The checksum comparison is still constant time'),
+
     // An event listener is reachable from the browser through __dispatch.
     checkFile($vendor, 'src/Features/SupportEvents/SupportEvents.php', "__dispatch",
         'A browser can still reach an #[On] listener through __dispatch'),
@@ -130,6 +138,24 @@ $checks = [
         'Authenticate is persistent, so it runs again on an update request'),
     checkFile($vendor, 'src/Mechanisms/PersistentMiddleware/PersistentMiddleware.php', 'Illuminate\Routing\Middleware\SubstituteBindings::class',
         'SubstituteBindings is persistent'),
+
+    // RULE 6 — Octane. flushState is triggered by the TESTING renderers only.
+    checkFile($vendor, 'src/Features/SupportTesting/InitialRender.php', 'flushState',
+        'flushState is still called by the TESTING renderer, which is why production never flushes'),
+    checkFile($vendor, 'src/Features/SupportRedirects/SupportRedirects.php', 'atLeastOneMountedComponentHasRedirected',
+        'The redirect flag that decides flash clearing is still static state'),
+    checkFile($vendor, 'src/Features/SupportScriptsAndAssets/SupportScriptsAndAssets.php', 'alreadyRunAssetKeys',
+        'The asset de-duplication key list is still static state'),
+
+    // RULE 7 — a write lands BEFORE its validation runs.
+    checkFile($vendor, 'src/Features/SupportValidation/SupportValidation.php', 'stopPropagation',
+        'A real-time validation failure is still swallowed, so the action still runs'),
+    checkFile($vendor, 'src/Features/SupportReactiveProps/BaseReactive.php', 'dehydrate',
+        'A #[Reactive] mutation is still refused at dehydrate, which is after the action'),
+
+    // RULE 8 — the payload guards, none of which appear in the documentation.
+    checkFile($vendor, 'config/livewire.php', 'max_nesting_depth',
+        'The payload guards still exist in config, where a shallow merge can drop them'),
 ];
 
 // RULE 5, the part that matters most. The skill tells a reader that a permission

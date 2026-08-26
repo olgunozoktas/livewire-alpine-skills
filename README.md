@@ -1,7 +1,7 @@
 # Livewire v4 + Alpine.js — Agent Skills
 
-[![Skills](https://img.shields.io/badge/skills-3-0f172a)](#whats-inside)
-[![Self-tests](https://img.shields.io/badge/self--tests-111%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
+[![Skills](https://img.shields.io/badge/skills-4-0f172a)](#whats-inside)
+[![Self-tests](https://img.shields.io/badge/self--tests-124%20checks-2ea44f)](#the-skill-ships-tools-not-just-text)
 [![Recipes](https://img.shields.io/badge/recipes-executed%20%C2%B7%2014%20tests%2C%2054%20assertions-2ea44f)](#the-recipes-are-executed-not-just-written)
 [![Livewire](https://img.shields.io/badge/livewire-v4.4.2-fb70a9)](https://livewire.laravel.com)
 [![Alpine.js](https://img.shields.io/badge/alpine.js-v3-77c1d2)](https://alpinejs.dev)
@@ -9,7 +9,7 @@
 [![Depth](https://img.shields.io/badge/read%20on%20demand-8,416%20lines-64748b)](#whats-inside)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Three [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
+Four [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
 assistant **Laravel Livewire v4** and **Alpine.js v3** accurately — with complete
 working recipes, a symptom-to-fix troubleshooting guide, version detection, and
 the security half that Livewire's own defaults make easy to get wrong.
@@ -21,7 +21,8 @@ the `SKILL.md` format.
 |---|---|---|---|
 | [`livewire-reference`](livewire-reference/) | **514** | 8,416 | All 98 files of the Livewire 4.x documentation, plus v3 differences |
 | [`alpinejs-reference`](alpinejs-reference/) | **250** | 2,646 | All 55 files of the Alpine.js documentation, plus the v2→v3 guide |
-| [`livewire-security`](livewire-security/) | **324** | 354 | What a component publishes, what a browser can change, how to detect a leak |
+| [`livewire-security`](livewire-security/) | **324** | 418 | What a component publishes, what a browser can change, how to detect a leak |
+| [`livewire-performance`](livewire-performance/) | **178** | 328 | What a request costs, how to measure it, and which fix matches which number |
 
 **Only `SKILL.md` enters context when a skill is invoked.** The `references/`
 files are read on demand through a routing table inside it, and `bin/` is
@@ -29,7 +30,7 @@ executed rather than read. So the entry point is 514 lines, not 10,000 — the
 depth is there when a task needs it and costs nothing when it does not.
 
 The always-loaded cost is smaller still: an agent sees only each skill's
-`description`, which is about 220 tokens for the largest of the three.
+`description`, which is about 220 tokens for the largest of the four.
 
 > **Renamed in 1.0.0.** `livewire-development` → **`livewire-reference`**, and
 > `alpinejs-development` → **`alpinejs-reference`**. Laravel Boost ships its own
@@ -46,7 +47,7 @@ The always-loaded cost is smaller still: an agent sees only each skill's
 > [`CHANGELOG.md`](CHANGELOG.md) has the rest.
 
 **Every badge above is a local measurement, not a CI run.** This repository has
-no GitHub Actions workflow. The self-test counts come from the three commands in
+no GitHub Actions workflow. The self-test counts come from the commands in
 [Validation](#validation); run them yourself and the numbers should match.
 
 **Invoke `livewire-reference` for the stack.** `livewire-security` is separate
@@ -118,6 +119,7 @@ git clone https://github.com/olgunozoktas/livewire-alpine-skills.git /tmp/lw-ski
 cp -R /tmp/lw-skills/livewire-reference  ~/.claude/skills/
 cp -R /tmp/lw-skills/alpinejs-reference  ~/.claude/skills/
 cp -R /tmp/lw-skills/livewire-security   ~/.claude/skills/
+cp -R /tmp/lw-skills/livewire-performance ~/.claude/skills/
 ```
 
 Per-project instead of global: copy into `.claude/skills/` in the repo.
@@ -249,7 +251,16 @@ Livewire is newer than this skill's verification.
 | `SKILL.md` | Why `public` means published AND writable, the six rules, why an allow-list is not a boundary in Livewire, how to build a canary sweep that does not lie, and the traps that cost real time |
 | `references/attack-surface.md` | The features that carry their own risk — a cached computed property shared by every user, event listeners a browser can call, the upload defaults, `wire:navigate` state, `#[Url]`, and parent access in v4. Each statement names the file that proves it |
 | `bin/scan.php` | 7 static checks — a model on a public property, an identity-named public property, a non-private page-prop bag, an unauthorized record mutator, a `#[Url]` identifier without `#[Locked]`, an untyped public property, a `#[Computed(cache: true)]` with no key. No bootstrap, no database, no autoloader |
-| `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the computed cache keys, the upload defaults. 19 statements. Run it after an upgrade |
+| `bin/verify-facts.php` | Checks the skill's own statements against the installed Livewire — the exception namespace, the persistent middleware list, the computed cache keys, the upload defaults. 27 statements. Run it after an upgrade |
+
+### `livewire-performance`
+
+| File | Covers |
+|---|---|
+| `SKILL.md` | What one request costs — the snapshot both ways, a model property as a query through the WRITE connection, re-render frequency, request frequency, and the page-level cache header |
+| `references/measuring.md` | The three numbers and the code that produces them: snapshot bytes, queries per update, render milliseconds. Includes a console paste that needs no package |
+| `references/bottlenecks.md` | Ten symptoms, each with its cause, the measurement that confirms it, and the fix |
+| `bin/scan-performance.php` | 6 static checks — a model on a public property, an unlocked public array, `wire:model.live` on a text input, `wire:poll` with no interval, a computed property in a loop, `#[Reactive]` |
 
 ### `alpinejs-reference`
 
@@ -354,13 +365,14 @@ Every badge above is a number you can reproduce. There is no CI run behind them.
 
 ```bash
 php     livewire-security/bin/scan.php          --self-test   # 22 checks
+php     livewire-performance/bin/scan-performance.php --self-test # 13 checks
 php     livewire-security/bin/check-update.sh   --self-test   #  6 checks
 python3 livewire-reference/bin/review.py        --self-test   # 53 checks
 python3 alpinejs-reference/bin/review.py        --self-test   # 30 checks
-#                                                              111 total
+#                                                              124 total
 
 # Are the security skill's statements still true of the installed Livewire?
-php livewire-security/bin/verify-facts.php <path-to-a-laravel-app>   # 19 statements
+php livewire-security/bin/verify-facts.php <path-to-a-laravel-app>   # 27 statements
 
 # The recipe gate. Scaffolds a throwaway Laravel app and runs every recipe.
 bash livewire-reference/bin/verify-recipes.sh                        # 14 tests, 54 assertions

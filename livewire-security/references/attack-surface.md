@@ -331,6 +331,340 @@ permission to check.
 
 **Call the check inside the component.** That is the only form that survives an
 update request.
+---
+
+## 10 · The checksum-failure limiter is keyed on the client IP
+
+**Undocumented.** No page mentions checksum rate limiting, the 429, or its key.
+
+Every Livewire update verifies the snapshot checksum, and a failure is counted
+against the client IP. `src/Mechanisms/HandleComponents/Checksum.php`:
+
+```php
+:11   protected static $maxFailures = 10;
+:12   protected static $decaySeconds = 600;     // ten minutes
+:78   return 'livewire-checksum-failures:' . request()->ip();
+```
+
+`enforceRateLimit()` runs at the top of `verify()`, **before** the current
+request's own checksum is checked. So ten bad snapshots from one address answer
+429 to every Livewire request from that address for ten minutes.
+
+The key is the raw IP and nothing else. Behind corporate NAT, campus NAT, CGNAT,
+or a proxy where `TrustProxies` is not configured, that address belongs to many
+people — or to everybody.
+
+**Attacker sequence.** Send ten POSTs to the update route with a structurally
+valid snapshot and a wrong checksum. Every Livewire interaction from that address
+fails for ten minutes. Repeat every ten minutes. The cost is ten requests.
+
+**There is no setting.** `$maxFailures` and `$decaySeconds` are `protected
+static`. What you can do:
+
+- Configure `TrustProxies` so `request()->ip()` is the real client and not your
+  own load balancer.
+- Rate-limit the update route at the edge on a key that includes the session.
+
+## 11 · A snapshot is a bearer object, with no owner and no expiry
+
+The checksum is `hash_hmac('sha256', json_encode($snapshot), $key)` where the key
+is the application key — `Checksum.php:82`, `:89`. It uses `hash_equals`, so the
+comparison is constant time.
+
+It covers `data` and the whole `memo`, including `memo.id` and `memo.name`. A
+snapshot therefore cannot be presented as a different component, and one
+component's data cannot be re-signed as another's. That part is sound.
+
+What it does **not** contain is a session id, a user id, a nonce or a timestamp.
+A validly signed snapshot is accepted from any client, for as long as the
+application key stays the same.
+
+**Documented as integrity. The consequence is not stated.** `docs/security.md`
+says the checksum verifies that "the snapshot hasn't changed", which is an
+integrity claim. It does not say the snapshot is unbound and does not expire.
+
+**Why this is defence in depth rather than a hole:** the documented model is that
+you authorize every action. If you do, a replayed snapshot buys nothing. It
+matters when a page leaks by an ordinary channel — a shared cache, a screenshot
+of the source, a `Referer`, a log — and an action relies on state that was
+authorized only at mount.
+
+**Treat "the checksum passed" as "this state is unmodified", never as "this
+person owns this state".** Rotating the application key invalidates every
+snapshot, which is the lever if one leaks.
+
+---
+
+## 12 · On Octane, Livewire's static state is never flushed between requests
+
+**The most serious item in this file after the computed cache, and it is
+undocumented.** Across all 99 documentation files the word "octane" appears
+once, in `wire-stream.md`, saying `wire:stream` does not support it.
+
+Livewire keeps request-scoped and user-scoped data in `static` properties across
+about twenty feature classes. One event resets them —
+`LivewireManager.php:293`:
+
+```php
+function flushState() { trigger('flush-state'); }
+```
+
+`flushState()` is called in exactly two places, and **both are the testing
+renderers**: `SupportTesting/InitialRender.php:37` and
+`SupportTesting/SubsequentRender.php:40`. The production update path,
+`HandleRequests::handleUpdate()`, never calls it. The package registers no
+Octane listener and no terminating callback. The only Octane mention in the
+source is a comment.
+
+Under PHP-FPM this costs nothing, because the process dies. **Under Laravel
+Octane the worker is reused**, so the state survives into the next request and
+the next user.
+
+Two consequences, each traced to its property:
+
+- **A page loses its JavaScript.** `SupportScriptsAndAssets.php:11-17` keeps
+  `$alreadyRunAssetKeys`, which records the `@assets` and `@script` blocks
+  already emitted so each is injected once. It is cleared only on
+  `flush-state`. On a later request in the same worker the block reads as
+  already run, and the required asset is **omitted from a different user's
+  page**.
+- **Flash data stops being cleared.** `SupportRedirects.php:15` holds
+  `$atLeastOneMountedComponentHasRedirected`, and `:20-24` uses it on every
+  response to decide whether to forget the flash bag. Once any request in that
+  worker redirects, the flag stays true, and later requests skip the clearing —
+  so a flash message persists into another request.
+
+`$renderStack` and `$componentStack` (`HandleComponents.php:21-22`) are popped
+with `tap()` rather than `try`/`finally`, so an exception mid-render leaves a
+stale entry for the next request.
+
+**No crafted payload is needed.** One user triggers a redirect or an assets
+block; the next user routed to that worker gets the consequence.
+
+**The fix, until Livewire wires it itself:**
+
+```php
+// config/octane.php
+'listeners' => [
+    RequestTerminated::class => [
+        fn () => \Livewire\Livewire::flushState(),
+    ],
+],
+```
+
+**Verified in source, NOT verified against a running Octane worker.** Octane was
+not installed where this was read. Confirm it in your own environment before you
+rely on either the consequence or the fix.
+
+## 13 · A valid Livewire request has no rate limit
+
+`src/Features/SupportPolling/` is **empty**. The `wire:poll` throttling for a
+background tab or an off-screen element is client-side JavaScript, and a script
+that is not a browser ignores it.
+
+The update route carries no `throttle` middleware
+(`HandleRequests.php:26-30`). The only limiter in Livewire counts **checksum
+failures** — see item 10 — and a request with a valid checksum is never counted.
+
+Per-request caps do exist and are enforced: `max_size` 1 MB, `max_calls` 50,
+`max_components` 200 (`config/livewire.php:276-280`). They bound one request,
+never the rate.
+
+**Attacker sequence.** Capture one valid snapshot from a page you are allowed to
+see. POST it to the update route in a loop. Each request runs the full hydrate,
+render and query cycle with no server-side throttle.
+
+**Documented as a performance behaviour; the consequence is not stated.**
+`polling.md` presents the throttling as a courtesy to the browser and never says
+a malicious client bypasses it.
+
+**Add `throttle` to a custom update route** with `Livewire::setUpdateRoute(...)`,
+which `docs/security.md` already shows for other reasons.
+
+## 14 · A nested component is addressable on its own
+
+`HandleRequests::handleUpdate()` iterates `request('components')` and hydrates
+each one independently (`:159-218`). There is no parent-to-child containment
+check.
+
+A child rendered inside a parent has its own `wire:id` and its own signed
+snapshot, both in the page. A client can submit that child's snapshot alone and
+call any of its public methods. **Middleware on the parent's route does not
+protect the child.**
+
+Forgery is still prevented by the checksum. The point is that a *legitimate*
+child snapshot is independently replayable.
+
+**Documented indirectly.** `understanding-nesting.md` establishes that each
+component is independent with its own id and snapshot, and `nesting.md` shows
+`$this->authorize()` inside child actions. The explicit warning is not written.
+
+## 15 · Two smaller ones, recorded so nobody re-investigates
+
+**Compiled component directories are created world-writable.**
+`src/Compiler/CacheManager.php:118` and seven sibling lines use
+`File::makeDirectory(..., 0777, true, true)`. The location is
+`storage/framework/views/livewire`, which is not web-served, and this matches
+Laravel's own compiled-Blade convention. The residual risk is local: on shared
+hosting another local user could place a `.php` file that Livewire then
+requires. Tighten to `0755` on a multi-tenant host. Undocumented.
+
+**`#[Session]` is NOT the computed-cache bug.** Its default key is also built
+from the component name and the property name only —
+`SupportSession/BaseSession.php:45-52` — which looks identical to the computed
+cache. The difference is the store: `#[Session]` writes through Laravel's
+**per-user session**, so the same key resolves to a different value for each
+person. Two instances of one component share a slot for the same user, which is
+the documented feature. Checked because the key looked alarming.
+
+---
+
+## 16 · Real-time `#[Validate]` does not stop the write, and the action still runs
+
+**The item on this page a developer is most likely to get wrong**, because the
+documentation's own words invite it: `attribute-validate.md` calls it
+*"Automatic validation — Property is validated every time it's updated"*.
+
+That sentence is true and it is not protection. The order in
+`HandleComponents.php:399-410` is: set the value, **then** run the validation
+callbacks.
+
+```php
+// updateProperty() has already written the value at :451
+foreach ($finishes as $finish) { $finish(); }   // validateOnly runs here
+```
+
+The `ValidationException` it raises is then **swallowed on purpose**.
+`Wrapped.php:22-34` triggers the exception hook and rethrows only if
+propagation is still on, and `SupportValidation.php:69-76` calls
+`$stopPropagation()`. The error reaches the error bag and nothing else.
+
+Control returns to `update()`, which calls `callMethods()` at `:220-223`. **The
+action runs, with the invalid value on the component.**
+
+**Attacker sequence.** The component has
+`#[Validate('required|email')] public $email` and a `save()` that trusts it. One
+request carries both:
+
+```json
+{ "updates": { "email": "anything at all" },
+  "calls": [ { "method": "save", "params": [] } ] }
+```
+
+The property is set. `validateOnly` throws and is swallowed. `save()` persists
+it.
+
+**Call `$this->validate()` at the top of every action that acts on the data.**
+Treat the attribute as a user-experience aid. The docs do say "You still call
+`$this->validate()` before saving" — framed as completeness, never as the gate.
+
+**Documented; the consequence is not stated.**
+
+## 17 · `#[Reactive]` is enforced at dehydrate, after the action has run
+
+A child may not persist a change to a `#[Reactive]` prop. The check is in
+`BaseReactive.php:58-65`, and `dehydrate()` is the **end** of the request.
+
+The order is again updateProperties, callMethods, dehydrate
+(`HandleComponents.php:220-234`). So a client that sends
+`updates: {"amount": 1}` with `calls: [{"method":"charge"}]` gets `charge()` run
+with `amount = 1`. The request then aborts with
+`CannotMutateReactivePropException` — **after** the charge.
+
+**Do not read a `#[Reactive]` prop as a trusted value inside an action.**
+Re-derive it from server state.
+
+**Undocumented.** Neither `attribute-reactive.md` nor `nesting.md` carries a
+mutation warning.
+
+## 18 · `#[Locked]` cannot lock one key of an array
+
+The attribute matches the whole subtree — `SupportAttributes.php:42` tests
+`$fullPath === $name` or `startsWith($name . '.')` — so it is all or nothing for
+the property.
+
+That is a problem when one key of an array is bound and a sibling key is not:
+
+```php
+public $settings = ['theme' => 'dark', 'is_admin' => false];
+```
+
+The view binds `wire:model="settings.theme"`, so `#[Locked]` on `$settings`
+would break the binding. Without it, `updates: {"settings.is_admin": true}`
+writes the key — `ArraySynth::set()` is `$target[$key] = $value`
+(`ArraySynth.php:36-38`), with no key allow-list below the top-level public
+property check.
+
+**Never keep a sensitive key in the same array as a bound key.** Give it its own
+`#[Locked]` scalar, or re-authorize where it is used.
+
+The refusal itself is correctly placed: it throws during `trigger('update')` at
+`HandleComponents.php:441`, **before** the value is written at `:451`. Unlike
+items 16 and 17, a locked write never lands.
+
+**The blocking is documented. The granularity is not.**
+
+## 19 · Publishing one payload limit silently disables the other three
+
+Livewire caps a request in four ways, and all four are enforced:
+
+| Key | Default | Enforced at |
+|---|---|---|
+| `max_size` | 1 MB | `HandleRequests.php:148-157` |
+| `max_nesting_depth` | 10 | `HandleComponents.php:434-437` |
+| `max_calls` | 50 | `HandleComponents.php:527-531` |
+| `max_components` | 200 | `HandleRequests.php:176-180` |
+
+None of the four appears anywhere in the 99 documentation files. They exist only
+as comments in the published config — which is where the trap is.
+
+`LivewireServiceProvider.php:65` uses `mergeConfigFrom`, and that merge is
+**shallow**. A published config that overrides one key:
+
+```php
+'payload' => ['max_size' => null],
+```
+
+**replaces the whole `payload` array**. The other three keys are then undefined,
+which reads back as `null`, and each guard is written `if ($max !== null)`. All
+three are off, and nothing says so.
+
+**Write every sub-key when you override one**, and confirm with
+`config('livewire.payload')` after publishing.
+
+## 20 · Class instantiation on hydrate is a denylist
+
+`HandleSynths.php:68,91` calls `SecurityPolicy::validateClass()` on the class
+named in the snapshot meta. The list is finite — console commands,
+`Symfony\Component\Process\Process`, a few known gadgets — with an `is_a()`
+inheritance check (`SecurityPolicy.php:12-52`).
+
+Being a denylist, an unlisted gadget class passes. This matters only if the
+checksum is ever bypassed, which the source comment says outright
+(`SecurityPolicy.php:8-11`).
+
+Add your own with `SecurityPolicy::denyClasses([...])`. It is defence in depth,
+never the primary control — **that is the application key**.
+
+## 21 · Three controls verified sound, so nobody re-checks them
+
+**An update can never choose its own synthesizer or class.**
+`HandleSynths::hydrateForUpdate()` and `hydratePropertyUpdate()`
+(`:97-118`, `:121-153`) always pair the untrusted update value with meta taken
+from the **authenticated** snapshot. The trust boundary is written out in
+comments at `:98-100` and `:113-117`.
+
+**Base-class internals are not writable.** `BaseUtils.php:28-39` admits only
+public, non-static properties declared on the user's own subclass, excluding
+`Livewire\Component` and `Volt\Component`. `$id` cannot be written.
+
+**There are exactly four magic actions**, and the server treats them as no-ops:
+`$refresh`, `$set`, `$sync`, `$commit` (`SupportMagicActions.php:11-27`).
+`$toggle` and `$parent` are client-side only. The real mutation from `$set`
+travels the ordinary `updates` path, so it meets the public-property check, the
+`#[Locked]` check and type coercion. **The magic list is not a boundary** — the
+public-property and public-method checks are.
+
 
 ---
 
@@ -349,6 +683,15 @@ identity or another person's data.
 - [ ] No secret, signed URL or whole record is a mount parameter of a `lazy` component.
 - [ ] Every action authorizes against the model it rehydrated, not against the route.
 - [ ] Permission checks live inside the component, not only in `permission:` middleware.
+- [ ] `TrustProxies` is configured, so the checksum limiter keys on a real client address.
+- [ ] No action trusts state that was authorized only at mount.
+- [ ] On Octane, `Livewire::flushState()` runs on `RequestTerminated`.
+- [ ] The Livewire update route carries a `throttle`.
+- [ ] Every nested component authorizes for itself, not through its parent's route.
+- [ ] Every action that persists calls `$this->validate()` itself.
+- [ ] No action trusts a `#[Reactive]` prop as a value.
+- [ ] No sensitive key shares an array with a bound key.
+- [ ] A published `livewire.payload` names all four sub-keys.
 - [ ] Each public method that reads or writes a record authorizes.
 - [ ] `bin/scan.php` reports nothing, or reports only recorded exceptions.
 - [ ] `bin/verify-facts.php` reports that every statement still holds.

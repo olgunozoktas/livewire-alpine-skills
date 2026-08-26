@@ -116,7 +116,7 @@ wrong advice, and no person notices.
 
 This tool applies the skill's own rule to the skill. It reads the installed
 `vendor/livewire/livewire` and fails when a statement no longer holds. It checks
-19 statements. Run it after a Livewire upgrade.
+27 statements. Run it after a Livewire upgrade.
 
 The tool was proved by injection. A copy of `vendor` received the Spatie
 permission middleware in the persistent list, and the check failed. The same copy

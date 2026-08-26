@@ -1,6 +1,6 @@
 ---
 name: alpinejs-reference
-version: 1.1.0
+version: 1.2.0
 description: 'Use for all Alpine.js v3 work. Covers x-data, x-show, x-if, x-for, x-model, x-transition, x-bind, x-on, magic properties, stores, custom directives, CSP, official plugins, and Livewire integration. Use it before you create, change, review, or debug Alpine behavior in Blade, Livewire, Rails, Django, Hotwire, or plain HTML. Use livewire-reference as the entry point inside Laravel Livewire projects. Keywords: alpine, alpinejs, x-data, x-init, x-show, x-if, x-for, x-model, x-modelable, x-bind, x-on, x-text, x-html, x-effect, x-ref, x-cloak, x-ignore, x-teleport, x-transition, x-id, $refs, $store, $watch, $dispatch, $nextTick, Alpine.data, Alpine.store, Alpine.bind, Alpine.directive, Alpine.reactive.'
 ---
 
