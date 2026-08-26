@@ -96,16 +96,52 @@ one, so both may be present.
 reads your `config/livewire.php`; it is deliberately terse because it is paired
 with a live `search-docs` index. These skills are the depth behind it.
 
+### Side by side
+
+Measured against `laravel/boost`'s `.ai/livewire/4/skill/livewire-development`.
+
+| | Laravel Boost | These skills |
+|---|---|---|
+| **Livewire skill size** | 203 lines, 2 files | **8,980 lines, 48 files** |
+| **Alpine skill** | none | **2,966 lines** |
+| Complete worked recipes | 1 (a counter) | **12, all executed** |
+| Troubleshooting | 5 bullets | **30-row triage + deep dives** |
+| Per-directive coverage | a 5-row table | **every directive, every modifier** |
+| Per-attribute coverage | not covered | **every attribute, every parameter** |
+| Volt | separate skill | functional API + migration path |
+| **Version-aware** | **ships v2/v3/v4 variants** | detects, and documents v3 differences |
+| **Project-aware config** | **Blade-rendered: real artisan + app paths** | `detect.sh` reports it |
+| **Live documentation** | **`search-docs`, 17k entries, semantic** | defers to Boost's |
+| **Auto-updates** | **`boost:update`** | `refresh.sh`, run manually |
+| Recipes executed | — | **14 tests, 54 assertions** |
+| Code reviewer | — | **80 self-tested checks, gates on exit code** |
+| Scaffolder | `make:livewire` guidance | **refuses v4-only flags on v3** |
+| Objective eval | — | **`eval.sh --compare`** |
+| Maintained by | **Laravel, with the framework** | this repo |
+| Install | `composer require laravel/boost` | copy two directories |
+
+**Boost wins on the bolded rows in its column, and those wins are structural.**
+It is a Composer package, so it knows your Livewire version, renders your real
+paths, and updates itself. It is terse *on purpose* — it is paired with a live
+documentation index, so it does not need to carry the depth.
+
+These skills win on depth, on worked examples, on debugging, and on being
+*verified* rather than asserted. Neither replaces the other.
+
+### Which to ask
+
 | Question | Best source |
 |---|---|
 | "What changed in the release last week?" | Boost `search-docs` — live and version-aware |
-| "Which format does *this* project use?" | Boost — its skill reads your config |
+| "Which format does *this* project use?" | Boost, or `bin/detect.sh` |
 | "Every modifier of `wire:target`" | These skills |
 | "Why did my morph put state on the wrong element?" | These skills |
 | "A complete searchable, paginated table" | These skills |
+| "Is this component secure / idiomatic?" | These skills — `bin/review.py` |
 
 If the two contradict each other on a fact, **prefer the live docs** and treat
-this snapshot's date as the tiebreaker.
+this snapshot's date as the tiebreaker. `bin/detect.sh` warns when your project's
+Livewire is newer than this skill's verification.
 
 ---
 
