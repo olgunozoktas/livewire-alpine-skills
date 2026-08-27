@@ -9,13 +9,34 @@
 [![Depth](https://img.shields.io/badge/read%20on%20demand-8,416%20lines-64748b)](#whats-inside)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Four [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
+Five [Agent Skills](https://agentskills.io/what-are-skills) that teach an AI coding
 assistant **Laravel Livewire v4** and **Alpine.js v3** accurately — with complete
 working recipes, a symptom-to-fix troubleshooting guide, version detection, and
 the security half that Livewire's own defaults make easy to get wrong.
 
 Works with Claude Code, Codex, Cursor, Gemini CLI, and anything else that reads
 the `SKILL.md` format.
+
+**Written from the documentation, corrected by a production application.** The
+security half is not a reading of the docs. Alpine ships no security
+documentation page at all, and Livewire's own defaults are what make its rules
+easy to get wrong.
+
+Those rules come from [SeeRanks](https://seeranks.com), a paid ranking board
+being rebuilt on Laravel 13 + Livewire 4. Two of them were defects in that
+codebase before they were rules here:
+
+- **six Alpine attributes** interpolated server data into a JavaScript context.
+  Blade escaped every one of them correctly, and the browser decoded the entity
+  back before Alpine compiled the attribute.
+- **a `wire:key` published a table's integer primary keys.** The test named
+  after that leak asserted on `"id":<n>`, so it could not see the real shape —
+  and a second test asserted the key was present, which pinned it in place.
+
+The third is the persistent-middleware gap. `permission:` middleware does not
+run again on the Livewire update endpoint, so a component behind it is not
+behind it. That one was found by reading the framework, before it cost
+anything.
 
 | Skill | Loads on invoke | Read on demand | Covers |
 |---|---|---|---|
@@ -461,6 +482,24 @@ labelled as source-derived where they appear.
 relying on anything version-sensitive in production.
 
 ---
+
+## Who maintains this
+
+One person. Three products pay for the time, and the first one is why these
+skills exist at all:
+
+| | |
+|---|---|
+| [**SeeRanks**](https://seeranks.com) | A paid ranking board for developer products. The Laravel + Livewire 4 application these skills are corrected against, and where the two defects above were found. |
+| [**FindUtils**](https://findutils.com) | Nearly 400 free online tools — converters, formatters, generators, calculators. The work happens in the browser: no account, and files are not uploaded. |
+| [**Emoji Favicons**](https://emojifavicons.com) | Turn any emoji into a favicon, with a documented API. One `<link>` tag and a site has an icon. |
+
+There is also a companion package for the other half of the problem these skills
+describe: [**laravel-page-performance**](https://github.com/olgunozoktas/laravel-page-performance)
+measures what every Livewire page actually costs — snapshot bytes, repeated
+queries with the file and line that ran them, per-component render timing — and
+gates only on the counters that are deterministic. `livewire-performance` tells
+an agent which fix matches which number; that package produces the number.
 
 ## License
 
