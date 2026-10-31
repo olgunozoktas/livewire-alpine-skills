@@ -95,6 +95,14 @@ matched the `update` mutator prefix. An application guard method,
 `$this->ensureAccess()`, was not in the authorization pattern. The scanner now
 handles both cases, and the self-test covers both.
 
+**A helper that authorizes is authorization (2026-11-01).** Many components check
+access in one private method, and every public action calls it:
+`[$team, $user, $check] = $this->check();`. The scanner read only the action's own
+lines, so on one real application it reported 11 such actions, and all 11 were
+false. It now follows `$this->name(` into the class's own methods, two calls deep.
+On that application the count went from 11 to 0. The self-test holds a helper one
+call deep, one two calls deep, and a helper that does not authorize (still reported).
+
 The scanner skips `vendor` and `node_modules` at any depth. Livewire's own test
 fixtures contain the shapes this scanner looks for, on purpose. Before that fix,
 one rule reported 49 findings on a real application, and most came from that
