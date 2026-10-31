@@ -131,15 +131,63 @@ function findings(string $file, string $source): array
             // knows the Laravel functions only reports each wrapped guard as a
             // finding. On one real application this produced 1 of 3 findings,
             // and that method was correctly guarded.
-            $authorized = preg_match('/\$this->authorize|Gate::|->can\(|->cannot\(|abort_unless|abort_if|::assert\(|policy\(|\$this->ensure\w*\(|\$this->guard\w*\(|::authorize\(/', $body) === 1;
-
-            if (! $authorized) {
+            if (! guarded($body, methodBodies($lines), 2)) {
                 $out[] = [$file, $number, 'unauthorized-mutator', trim($line)];
             }
         }
     }
 
     return $out;
+}
+
+/** The calls that authorize: Laravel's, and a project's own guard named `ensure*` or `guard*`. */
+const GUARD_PATTERN = '/\$this->authorize|Gate::|->can\(|->cannot\(|abort_unless|abort_if|::assert\(|policy\(|\$this->ensure\w*\(|\$this->guard\w*\(|::authorize\(/';
+
+/**
+ * Each method of the class, by name, with up to 40 lines of its body.
+ *
+ * @param  list<string>  $lines
+ * @return array<string, string>
+ */
+function methodBodies(array $lines): array
+{
+    $bodies = [];
+    foreach ($lines as $i => $line) {
+        if (preg_match('/^\s*(?:public|protected|private)\s+(?:static\s+)?function\s+(\w+)\s*\(/', $line, $m) === 1) {
+            $bodies[strtolower($m[1])] = implode("\n", array_slice($lines, $i, 40));
+        }
+    }
+
+    return $bodies;
+}
+
+/**
+ * Is this body authorized, itself or through a helper of the same class that it calls?
+ *
+ * A HELPER THAT AUTHORIZES IS AUTHORIZATION (2026-11-01). Components resolve and check in one private method, then
+ * every public action calls it: `[$team, $user, $check] = $this->check();`, where `check()` holds `Gate::...->authorize`.
+ * Reading only the action's own lines reported all 11 such actions on one real application as unguarded (11 of 11
+ * findings were false). The scanner now follows `$this->name(` into the class's own methods, `$depth` levels deep.
+ *
+ * @param  array<string, string>  $bodies
+ */
+function guarded(string $body, array $bodies, int $depth): bool
+{
+    if (preg_match(GUARD_PATTERN, $body) === 1) {
+        return true;
+    }
+
+    if ($depth <= 0 || preg_match_all('/\$this->(\w+)\s*\(/', $body, $calls) === 0) {
+        return false;
+    }
+
+    foreach (array_unique(array_map('strtolower', $calls[1])) as $name) {
+        if (isset($bodies[$name]) && guarded($bodies[$name], $bodies, $depth - 1)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -237,6 +285,11 @@ function selfTest(): int
         ['unauthorized-mutator', false, $component("    public function updatedTarget(): void\n    {\n        \$this->quote();\n    }")],
         // A project's own guard helper counts as authorization.
         ['unauthorized-mutator', false, $component("    public function deleteMessage(int \$id): void\n    {\n        \$this->ensureAccess();\n        Message::findOrFail(\$id)->delete();\n    }")],
+        // A private helper that authorizes counts, one and two calls deep (2026-11-01).
+        ['unauthorized-mutator', false, $component("    public function revoke(): void\n    {\n        [\$team, \$check] = \$this->check();\n        \$check->revoke();\n    }\n\n    private function check(): array\n    {\n        Gate::forUser(auth()->user())->authorize('send', \$this->team);\n        return [];\n    }")],
+        ['unauthorized-mutator', false, $component("    public function saveStyle(): void\n    {\n        \$this->persist();\n    }\n\n    private function persist(): void\n    {\n        \$project = \$this->resolveProject();\n        \$project->save();\n    }\n\n    private function resolveProject(): Project\n    {\n        abort_unless(\$this->team->owns(\$this->projectId), 404);\n        return Project::find(\$this->projectId);\n    }")],
+        // A helper that does NOT authorize still leaves the action reported.
+        ['unauthorized-mutator', true, $component("    public function deletePost(\$id)\n    {\n        \$post = \$this->find(\$id);\n        \$post->delete();\n    }\n\n    private function find(\$id): Post\n    {\n        return Post::findOrFail(\$id);\n    }")],
         // A cached computed property with no key is shared by every user.
         ['computed-cache-without-key', true, $component("    #[Computed(cache: true)]\n    public function invoices() { return auth()->user()->invoices; }")],
         // An explicit key is the fix, so it must stay silent.
