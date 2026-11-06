@@ -1,7 +1,8 @@
 """Extract every code block from recipes.md into real files in the test app."""
 import re, os, sys, io
 
-RECIPES = os.path.expanduser('~/Herd/olgun-skills/skills/laravel/livewire-reference/references/recipes.md')
+# This skill's own recipes, next to this script (tests/ -> ../references/recipes.md).
+RECIPES = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'references', 'recipes.md')
 APP = sys.argv[1]
 
 s = io.open(RECIPES, encoding='utf-8').read()
